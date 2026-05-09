@@ -8,23 +8,98 @@ import { cn, formatPrice } from '../../lib/utils';
 import { Button } from '../ui/button';
 
 export const StorefrontLayout = () => {
-  const { currentStore, fetchStoreBySlug, loading } = useStore();
+  const { currentStore, fetchStoreBySlug, loading, error } = useStore();
   const { cartCount, items } = useCart();
   const { isRtl, t } = useLanguage();
   const location = useLocation();
+  const [isHydrated, setIsHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    if (!currentStore && !loading) {
-      // In a real app, we'd get the slug from the URL or headers
-      // For this preview, we'll just fetch the default/first store
+    // @ts-ignore
+    const unsub = useStore.persist.onFinishHydration(() => setIsHydrated(true));
+    // @ts-ignore
+    if (useStore.persist.hasHydrated()) setIsHydrated(true);
+    return () => unsub();
+  }, []);
+
+  React.useEffect(() => {
+    if (isHydrated && !currentStore && !loading && !error) {
+      // Fetch default store if none exists in state
       fetchStoreBySlug('default');
     }
-  }, [currentStore, loading, fetchStoreBySlug]);
+  }, [currentStore, loading, fetchStoreBySlug, isHydrated, error]);
 
-  if (loading && !currentStore) {
+  if ((loading || !isHydrated) && !currentStore) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Fallback for no store found - Premium Merchant Funnel
+  if (!currentStore && !loading && isHydrated) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-black selection:text-white">
+        <header className="px-8 py-6 flex items-center justify-between border-b border-gray-50">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+              <ShoppingCart className="text-white" size={16} />
+            </div>
+            <span className="text-lg font-black tracking-tighter uppercase">LUMIÈRE</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link to="/login" className="text-xs font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors">Log In</Link>
+            <Link to="/login" className="px-5 py-2.5 bg-black text-white rounded-full font-bold text-[10px] uppercase tracking-widest hover:translate-y-[-1px] transition-all">Start Free Trial</Link>
+          </div>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100 mb-10">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Ready for Launch</span>
+          </div>
+          
+          <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9]">
+            The platform for <span className="text-gray-300">visionary</span> merchants.
+          </h1>
+          
+          <p className="text-xl text-gray-500 font-medium max-w-2xl mb-12 leading-relaxed">
+            Beautiful storefronts, global infrastructure, and advanced merchant tools. Join the thousands of brands building their future on Lumière.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-20 w-full max-w-md">
+            <Link to="/login" className="flex-1 h-14 bg-black text-white rounded-2xl font-black text-sm flex items-center justify-center hover:shadow-2xl hover:shadow-black/10 transition-all">
+              Launch My Store
+            </Link>
+            <Link to="/login" className="flex-1 h-14 bg-white text-black border border-gray-200 rounded-2xl font-black text-sm flex items-center justify-center hover:bg-gray-50 transition-all">
+              Merchant Login
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 w-full pt-20 border-t border-gray-50">
+            {[
+              { label: "Active Stores", value: "24k+" },
+              { label: "Daily Orders", value: "150k+" },
+              { label: "Uptime", value: "99.99%" },
+              { label: "Support", value: "24/7" },
+            ].map(stat => (
+              <div key={stat.label} className="text-center">
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        <footer className="px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-50">
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">© 2026 LUMIÈRE. BUILT FOR SCALE.</p>
+           <div className="flex gap-8">
+             {['Pricing', 'Docs', 'Status', 'Twitter'].map(link => (
+               <button key={link} className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors">{link}</button>
+             ))}
+           </div>
+        </footer>
       </div>
     );
   }

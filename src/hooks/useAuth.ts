@@ -67,7 +67,8 @@ export function useAuth() {
         setProfile(userProfile);
       } else {
         setProfile(null);
-        setStore(null);
+        // Don't aggressively clear store on logout to allow storefront to persist
+        // setStore(null); 
       }
       setLoading(false);
     });

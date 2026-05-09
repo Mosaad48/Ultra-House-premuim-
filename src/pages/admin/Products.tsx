@@ -51,6 +51,75 @@ import { Textarea } from '../../components/ui/textarea';
 import { formatPrice, cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
+const MediaUpload = ({ images, setImages }: { images: string[], setImages: (imgs: string[]) => void }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setImages([...images, result]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(handleFile);
+  };
+
+  const onSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(handleFile);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Product Images</Label>
+      <div className="grid grid-cols-4 gap-4">
+        {images.map((img, i) => (
+          <div key={i} className="relative aspect-square rounded-xl overflow-hidden group border border-gray-100">
+            <img src={img} alt="" className="w-full h-full object-cover" />
+            <button 
+              type="button"
+              onClick={() => removeImage(i)}
+              className="absolute top-1 right-1 p-1 bg-white/80 backdrop-blur-md rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        {images.length < 5 && (
+          <label 
+            className={cn(
+              "aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-all",
+              isDragging ? "border-black bg-gray-50" : "border-gray-200"
+            )}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={onDrop}
+          >
+            <input type="file" className="hidden" multiple onChange={onSelect} accept="image/*" />
+            <ImageIcon size={20} className="text-gray-400 mb-2" />
+            <span className="text-[10px] font-black uppercase text-gray-400">Add Image</span>
+          </label>
+        )}
+      </div>
+      <p className="text-[10px] text-gray-400">Upload up to 5 professional product shots. Drag and drop supported.</p>
+    </div>
+  );
+};
+
 export const AdminProducts = () => {
   const { currentStore } = useStore();
   const [products, setProducts] = useState<any[]>([]);
@@ -63,7 +132,7 @@ export const AdminProducts = () => {
     price: 0,
     category: 'Furniture',
     stock: 0,
-    images: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800']
+    images: [] as string[]
   });
 
   useEffect(() => {
@@ -108,7 +177,7 @@ export const AdminProducts = () => {
         price: 0,
         category: 'Furniture',
         stock: 0,
-        images: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800']
+        images: []
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -145,11 +214,9 @@ export const AdminProducts = () => {
             Export
           </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-black text-white hover:bg-gray-800">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
+            <DialogTrigger render={<Button className="bg-black text-white hover:bg-gray-800" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Product
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] rounded-[32px]">
               <DialogHeader>
@@ -210,6 +277,10 @@ export const AdminProducts = () => {
                     className="rounded-xl h-32 resize-none"
                   />
                 </div>
+                <MediaUpload 
+                  images={newProduct.images} 
+                  setImages={(imgs) => setNewProduct({...newProduct, images: imgs})} 
+                />
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">Cancel</Button>
                   <Button type="submit" className="bg-black text-white hover:bg-gray-800 rounded-xl px-8">Create Product</Button>
@@ -267,8 +338,12 @@ export const AdminProducts = () => {
               ) : filteredProducts.map((product) => (
                 <TableRow key={product.id} className="cursor-pointer group hover:bg-gray-50/50">
                   <TableCell>
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden border border-gray-100">
-                      <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center text-gray-400">
+                      {product.images && product.images.length > 0 ? (
+                        <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon size={20} />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -315,10 +390,8 @@ export const AdminProducts = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="hover:bg-white">
-                          <MoreVertical size={16} />
-                        </Button>
+                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="hover:bg-white" />}>
+                        <MoreVertical size={16} />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[160px] rounded-xl">
                         <DropdownMenuItem onClick={() => window.open(`/product/${product.id}`, '_blank')}>

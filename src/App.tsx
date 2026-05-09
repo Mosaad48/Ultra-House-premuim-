@@ -6,7 +6,6 @@ import { AdminProducts } from './pages/admin/Products';
 import { AdminOrders } from './pages/admin/Orders';
 import { AdminAnalytics } from './pages/admin/Analytics';
 import { AdminSettings } from './pages/admin/Settings';
-import { Onboarding } from './pages/admin/Onboarding';
 import { StoreCustomizer } from './pages/admin/StoreCustomizer';
 import { Home } from './pages/storefront/Home';
 import { ProductDetail } from './pages/storefront/ProductDetail';
@@ -31,10 +30,14 @@ const AppContent = () => {
   return (
     <Router>
       <Routes>
-        {/* Admin Routes */}
+        {/* Merchant Auth Routes */}
+        <Route path="/login" element={user ? <Navigate to="/admin" /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/admin" /> : <Login />} />
+        <Route path="/forgot-password" element={<Login />} />
+
+        {/* Admin Dashboard Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
-          <Route path="onboarding" element={<Onboarding />} />
           <Route path="store-customizer" element={<StoreCustomizer />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="products" element={<AdminProducts />} />
@@ -51,11 +54,10 @@ const AppContent = () => {
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />
           <Route path="product/:id" element={<ProductDetail />} />
-          <Route path="collections" element={<Home />} /> {/* Temporary placeholders */}
+          <Route path="collections" element={<Home />} />
           <Route path="cart" element={<Home />} />
           <Route path="checkout" element={<Home />} />
-          <Route path="account" element={<Login />} />
-          <Route path="login" element={user ? <Navigate to="/" /> : <Login />} />
+          <Route path="account" element={<Navigate to="/login" />} />
         </Route>
 
         {/* Fallback */}

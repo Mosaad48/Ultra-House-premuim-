@@ -19,6 +19,8 @@ import {
   Truck as TruckIcon,
   Search as SearchIcon,
   ShoppingCart,
+  ShoppingBag,
+  Bot,
   TriangleAlert,
   Users
 } from 'lucide-react';
@@ -67,93 +69,83 @@ export const AdminDashboard = () => {
   const progress = (completedCount / checklistItems.length) * 100;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {currentStore?.name || 'Partner'}!</h1>
-          <p className="text-gray-500 text-sm">Here's what's happening with your store today.</p>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Premium Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black tracking-tight text-gray-900 leading-none">
+            Welcome back, {currentStore?.name || 'Partner'}
+          </h1>
+          <p className="text-gray-500 font-medium text-sm">
+            Overview of your business performance for today, May 9, 2026.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="bg-white border-gray-200" onClick={() => navigate('/admin/store-customizer')}>
-            <Settings className="mr-2 h-4 w-4" />
-            Customize Theme
+          <Button variant="outline" className="h-11 px-5 border-gray-200 bg-white font-bold text-xs uppercase tracking-widest hover:bg-gray-50 shadow-sm" onClick={() => navigate('/admin/settings')}>
+            <Settings className="mr-2 h-4 w-4 text-gray-400" />
+            Manage Settings
           </Button>
-          <Button size="sm" className="bg-black text-white hover:bg-gray-800" onClick={() => navigate('/admin/products')}>
+          <Button className="h-11 px-6 bg-black text-white font-bold text-xs uppercase tracking-widest hover:bg-gray-800 shadow-xl shadow-black/10 transition-all">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Product
+            Create Product
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Setup Guide */}
-          <Card className="border-none shadow-sm overflow-hidden bg-white ring-1 ring-black/[0.05]">
-            <CardHeader className="bg-[#fcfcfc] border-b border-gray-100 flex flex-row items-center justify-between py-4">
-              <div className="space-y-1">
-                <CardTitle className="text-sm font-bold">Setup Guide</CardTitle>
-                <CardDescription className="text-[10px] uppercase font-black tracking-widest text-gray-400">
-                  {completedCount} of {checklistItems.length} tasks completed
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-[10px] font-bold text-gray-400">{Math.round(progress)}%</div>
-                <Progress value={progress} className="w-24 h-1.5" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-gray-50">
-                {checklistItems.map((item, i) => (
-                  <div 
-                    key={item.id} 
-                    className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                        item.done ? "bg-green-500 border-green-500 text-white" : "border-gray-200 text-gray-300 group-hover:border-gray-400"
-                      )}>
-                        {item.done ? <CheckCircle2 size={12} /> : i + 1}
-                      </div>
-                      <span className={cn(
-                        "text-sm font-medium",
-                        item.done ? "text-gray-400 line-through" : "text-gray-700"
-                      )}>
-                        {item.label}
-                      </span>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-900 group-hover:translate-x-1 transition-all" />
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        
+        {/* Left Column: Progress & Core Actions */}
+        <div className="xl:col-span-8 space-y-8">
+          
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { label: 'Total Sales', value: '$12,482.00', trend: '+12.5%', icon: DollarSign, color: 'emerald' },
+              { label: 'Total Orders', value: '432', trend: '+8.2%', icon: ShoppingCart, color: 'blue' },
+              { label: 'Customer Visits', value: '18.4k', trend: '-2.4%', icon: Eye, color: 'violet' },
+            ].map((stat) => (
+              <Card key={stat.label} className="border-none shadow-sm ring-1 ring-black/[0.05] p-6 hover:ring-black/10 transition-all group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={cn("p-2 rounded-xl", `bg-${stat.color}-50 text-${stat.color}-600`)}>
+                     <stat.icon size={18} />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-            <div className="p-4 bg-accent/5 border-t border-accent/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Rocket className="text-accent" size={16} />
-                <span className="text-[10px] font-black text-accent uppercase tracking-widest leading-none">Ready to launch?</span>
-              </div>
-              <Button size="sm" variant="ghost" className="text-accent hover:bg-accent/10 h-7 text-[10px] font-bold uppercase py-0">
-                Publish Store
-              </Button>
-            </div>
-          </Card>
+                  <div className={cn(
+                    "text-[10px] font-black uppercase flex items-center gap-0.5",
+                    stat.trend.startsWith('+') ? "text-emerald-600" : "text-rose-500"
+                  )}>
+                    {stat.trend.startsWith('+') ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                    {stat.trend}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-2xl font-black">{stat.value}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
 
-          {/* Quick Stats Chart */}
-          <Card className="border-none shadow-sm bg-white overflow-hidden ring-1 ring-black/[0.05]">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          {/* Sales Analytics Chart */}
+          <Card className="border-none shadow-sm ring-1 ring-black/[0.05] overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-8">
               <div className="space-y-1">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total Sales</CardTitle>
-                <div className="text-2xl font-black">$12,482.00</div>
+                <CardTitle className="text-lg font-black tracking-tight">Sales Analytics</CardTitle>
+                <CardDescription className="text-xs font-medium text-gray-500">Real-time revenue monitoring</CardDescription>
               </div>
-              <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">
-                <TrendingUp size={12} />
-                +12.5%
+              <div className="flex gap-2">
+                {['Day', 'Week', 'Month'].map(t => (
+                  <Button key={t} variant={t === 'Week' ? 'default' : 'ghost'} className={cn(
+                    "h-8 text-[10px] font-black uppercase tracking-widest px-3",
+                    t === 'Week' ? "bg-black text-white" : "text-gray-400 hover:text-black"
+                  )}>
+                    {t}
+                  </Button>
+                ))}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[250px] w-full mt-4">
+              <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data}>
                     <defs>
@@ -162,23 +154,23 @@ export const AdminDashboard = () => {
                         <stop offset="95%" stopColor="#000" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis 
                       dataKey="name" 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 10, fill: '#bbb', fontWeight: 600 }} 
+                      tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }} 
                       dy={10}
                     />
                     <YAxis 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 10, fill: '#bbb', fontWeight: 600 }} 
+                      tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }} 
                       tickFormatter={(value) => `$${value}`}
                     />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                      itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                      itemStyle={{ fontSize: '13px', fontWeight: '900' }}
                     />
                     <Area 
                       type="monotone" 
@@ -193,61 +185,148 @@ export const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Activity Feed Container */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="border-none shadow-sm ring-1 ring-black/[0.05] p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">Recent Orders</h3>
+                <Button variant="ghost" size="sm" className="text-xs font-bold text-gray-500 hover:text-black" onClick={() => navigate('/admin/orders')}>
+                  View all
+                </Button>
+              </div>
+              <div className="space-y-4">
+                 {[
+                   { id: '#1042', customer: 'Liam Neeson', status: 'fulfilled', total: '$142.00', time: '2m ago' },
+                   { id: '#1041', customer: 'Emma Watson', status: 'unfulfilled', total: '$89.00', time: '12m ago' },
+                   { id: '#1040', customer: 'Tom Hardy', status: 'paid', total: '$210.00', time: '45m ago' },
+                 ].map(order => (
+                   <div key={order.id} className="flex items-center justify-between py-2 group cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
+                     <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 bg-gray-50 rounded flex items-center justify-center font-bold text-[10px] text-gray-400">
+                          {order.id.slice(-2)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-900">{order.customer}</p>
+                          <p className="text-[10px] text-gray-500 uppercase font-black">{order.id} • {order.time}</p>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-xs font-black text-gray-900">{order.total}</p>
+                        <Badge variant="outline" className={cn(
+                          "text-[9px] uppercase tracking-widest px-1.5 py-0 border-transparent bg-gray-50",
+                          order.status === 'fulfilled' ? "text-emerald-600 bg-emerald-50" : 
+                          order.status === 'unfulfilled' ? "text-amber-600 bg-amber-50" : "text-blue-600 bg-blue-50"
+                        )}>
+                          {order.status}
+                        </Badge>
+                     </div>
+                   </div>
+                 ))}
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm ring-1 ring-black/[0.05] p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">Inventory Alerts</h3>
+                <Button variant="ghost" size="sm" className="text-xs font-bold text-gray-500 hover:text-black" onClick={() => navigate('/admin/products')}>
+                  Manage
+                </Button>
+              </div>
+              <div className="space-y-4">
+                 {[
+                   { name: 'Ultra Boost Noir', sku: 'UB-2024-BLK', stock: '2 left', status: 'critical' },
+                   { name: 'Suede Combat Boots', sku: 'SC-BT-SDE', stock: '0 left', status: 'out' },
+                   { name: 'Classic Leather Belt', sku: 'CL-BELT-BWN', stock: '5 left', status: 'low' },
+                 ].map(item => (
+                   <div key={item.sku} className="flex items-center justify-between py-2 group cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
+                     <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center text-gray-300">
+                           <ShoppingBag size={20} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-900">{item.name}</p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase">{item.sku}</p>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <p className={cn(
+                          "text-xs font-black",
+                          item.status === 'critical' || item.status === 'out' ? "text-rose-500" : "text-amber-500"
+                        )}>{item.stock}</p>
+                        <div className="w-16 h-1.5 bg-gray-100 rounded-full mt-1">
+                          <div className={cn(
+                            "h-full rounded-full",
+                            item.status === 'out' ? "w-0" : 
+                            item.status === 'critical' ? "w-1/4 bg-rose-500" : "w-1/2 bg-amber-500"
+                          )} />
+                        </div>
+                     </div>
+                   </div>
+                 ))}
+              </div>
+            </Card>
+          </div>
         </div>
 
-        {/* Sidebar Actions Area */}
-        <div className="space-y-8">
-          {/* Store Health */}
-          <Card className="border-none shadow-xl shadow-accent/10 bg-[#121212] text-white p-6 relative overflow-hidden ring-1 ring-white/10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <div className="w-10 h-10 bg-white/5 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10">
-                  <Rocket size={18} className="text-accent" />
-                </div>
-                <Badge variant="secondary" className="bg-white/5 text-white border-white/10 text-[9px] uppercase tracking-widest px-2 py-0.5">Draft</Badge>
+        {/* Right Column: Insights & Actions */}
+        <div className="xl:col-span-4 space-y-8">
+          
+          {/* Main Action Card */}
+          <Card className="border-none bg-[#0a0a0a] text-white p-8 relative overflow-hidden shadow-2xl shadow-black/20">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-[24px] flex items-center justify-center mb-10 shadow-2xl border border-white/5">
+                <Rocket className="text-white" size={32} />
               </div>
-              <h3 className="text-lg font-bold mb-2">Build your empire</h3>
-              <p className="text-gray-400 text-[11px] mb-8 leading-relaxed opacity-70">Your store is currently visible only to you. Complete your setup to start selling globally.</p>
-              <Button className="w-full bg-accent text-black hover:bg-white border-transparent h-10 font-black uppercase text-[10px] tracking-[0.15em] transition-all">
-                Launch Now
+              <h3 className="text-2xl font-black mb-4 tracking-tight leading-none">Ready to scale?</h3>
+              <p className="text-gray-400 text-sm font-medium mb-10 leading-relaxed max-w-[240px]">
+                Your storefront is currently in preview mode. Launch globally to accept live payments.
+              </p>
+              <Button className="w-full h-14 bg-white text-black font-black uppercase text-xs tracking-widest hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Launch My Store
               </Button>
             </div>
           </Card>
 
-          {/* Activity Feed */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between px-2">
-               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Activity</h3>
-               <button className="text-[10px] font-bold text-accent uppercase">View all</button>
-            </div>
-            <div className="space-y-1">
-              {[
-                { title: 'New Order #1042', time: '2 mins ago', type: 'order', color: 'text-green-500' },
-                { title: 'Inventory Alert: Watch', time: '1 hour ago', type: 'alert', color: 'text-red-500' },
-                { title: 'New Customer: Sarah', time: '3 hours ago', type: 'user', color: 'text-blue-500' },
-              ].map((activity, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all group cursor-pointer border border-transparent hover:border-black/[0.05]">
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center transition-colors shadow-sm",
-                    activity.color.replace('text', 'bg').replace('500', '50')
-                  )}>
-                    {activity.type === 'order' ? <ShoppingCart size={14} className="text-green-600" /> : 
-                     activity.type === 'alert' ? <TriangleAlert size={14} className="text-red-600" /> : 
-                     <Users size={14} className="text-blue-600" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-gray-900 leading-none mb-1">{activity.title}</div>
-                    <div className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                      <Clock size={8} />
-                      {activity.time}
-                    </div>
-                  </div>
-                  <ChevronRight size={12} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              ))}
-            </div>
+          {/* Quick Actions List */}
+          <div className="space-y-4">
+             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Quick Shortcuts</h3>
+             <div className="grid grid-cols-2 gap-4">
+               {[
+                 { label: 'Domains', icon: GlobeIcon, href: '/admin/settings?tab=domains' },
+                 { label: 'Shipping', icon: TruckIcon, href: '/admin/settings?tab=shipping' },
+                 { label: 'Payments', icon: DollarSign, href: '/admin/settings?tab=payments' },
+                 { label: 'Live Chat', icon: HelpCircle, href: '/admin/content' },
+               ].map(action => (
+                 <button 
+                  key={action.label}
+                  onClick={() => navigate(action.href)}
+                  className="flex flex-col items-center gap-3 p-4 bg-white rounded-2xl ring-1 ring-black/[0.05] hover:ring-black/20 transition-all group"
+                 >
+                   <div className="p-2.5 bg-gray-50 rounded-xl group-hover:bg-black group-hover:text-white transition-colors">
+                     <action.icon size={18} />
+                   </div>
+                   <span className="text-[10px] font-black uppercase text-gray-500 group-hover:text-black tracking-widest transition-colors">{action.label}</span>
+                 </button>
+               ))}
+             </div>
           </div>
+
+          {/* Marketing Insight */}
+          <Card className="border-none bg-accent/5 p-6 border border-accent/10 relative overflow-hidden">
+             <div className="flex gap-4 relative z-10">
+               <div className="p-2 bg-accent rounded-lg h-fit">
+                 <Bot size={18} className="text-black" />
+               </div>
+               <div className="space-y-1">
+                 <h4 className="text-sm font-black text-gray-900">AI Insight</h4>
+                 <p className="text-xs font-medium text-gray-600 leading-relaxed italic">
+                   "Your 'Suede Combat Boots' are trending in the UK. Consider running a targeted ad campaign for this region."
+                 </p>
+               </div>
+             </div>
+          </Card>
         </div>
       </div>
     </div>

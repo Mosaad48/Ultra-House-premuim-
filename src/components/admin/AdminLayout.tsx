@@ -20,17 +20,38 @@ import { Button } from '../../components/ui/button';
 export const AdminLayout = () => {
   const { user, profile, loading } = useAuth();
   const { currentStore } = useStore();
+  const [isHydrated, setIsHydrated] = React.useState(false);
   const { isRtl } = useLanguage();
   const location = useLocation();
+
+  React.useEffect(() => {
+    // @ts-ignore
+    const unsub = useStore.persist.onFinishHydration(() => setIsHydrated(true));
+    // @ts-ignore
+    if (useStore.persist.hasHydrated()) setIsHydrated(true);
+    return () => unsub();
+  }, []);
 
   // Protected route: Check if user is logged in
   if (!loading && !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Check for store and redirect to onboarding if missing
-  if (!loading && user && !currentStore && location.pathname !== '/admin/onboarding') {
-    return <Navigate to="/admin/onboarding" replace />;
+  // Wait for both auth and store hydration before deciding on state
+  if (!loading && isHydrated && user && !currentStore) {
+    // If no store exists, we'll let the layout render and handle the empty state gracefully
+  }
+
+  if (loading || !isHydrated) {
+    const loaderColor = currentStore?.adminAppearance?.primaryColor || '#000000';
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#f1f1f1]">
+        <div 
+          className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" 
+          style={{ borderColor: `${loaderColor} transparent ${loaderColor} transparent` }} 
+        />
+      </div>
+    );
   }
 
   const primaryColor = currentStore?.adminAppearance?.primaryColor || '#000000';

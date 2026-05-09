@@ -81,6 +81,12 @@ service cloud.firestore {
       allow create: if isStoreOwner(incoming().storeId) && isValidProduct(incoming());
       allow update: if isStoreOwner(existing().storeId) && isValidProduct(incoming()) && incoming().storeId == existing().storeId;
       allow delete: if isStoreOwner(existing().storeId);
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isStoreOwner(get(/databases/$(database)/documents/products/$(productId)).data.storeId));
+      }
     }
 
     match /orders/{orderId} {

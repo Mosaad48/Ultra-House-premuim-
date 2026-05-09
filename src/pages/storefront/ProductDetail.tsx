@@ -20,56 +20,10 @@ import { useCart } from '../../hooks/useCart';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
 import { formatPrice, cn } from '../../lib/utils';
 import { Product } from '../../types';
-
-// Mock data for a detailed product
-const MOCK_PRODUCT: Product = {
-  id: '1',
-  storeId: 'default',
-  title: 'Nordic Minimalist Sofa',
-  description: 'The Nordic Minimalist Sofa combines sleek Scandinavian design with ultimate comfort. Upholstered in premium, durable velvet that feels soft to the touch while resisting wear. The frame is constructed from sustainably sourced solid oak, ensuring longevity and stability. Perfectly sized for modern urban living, this piece serves as a sophisticated focal point for any lounge area.',
-  price: 999,
-  originalPrice: 1299,
-  category: 'Furniture',
-  images: [
-    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1550581190-9c1c48d21d6c?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&q=80&w=1200'
-  ],
-  stock: 5,
-  rating: 4.8,
-  reviewsCount: 124,
-  createdAt: '',
-  updatedAt: ''
-};
-
-const REVIEWS = [
-  {
-    id: 1,
-    user: 'Alexander R.',
-    rating: 5,
-    date: '2 weeks ago',
-    comment: 'Absolutely stunning sofa. The velvet quality exceeded my expectations. Assembly was incredibly easy and it fits my living room perfectly. High-end look without the ridiculous price tag.'
-  },
-  {
-    id: 2,
-    user: 'Sarah M.',
-    rating: 4,
-    date: '1 month ago',
-    comment: 'Beautiful design. The color is slightly darker than the photos but I actually prefer it. It is medium-firm, which is exactly what I was looking for. Delivery was smooth.'
-  },
-  {
-    id: 3,
-    user: 'David K.',
-    rating: 5,
-    date: '2 months ago',
-    comment: 'Best purchase I have made this year. High quality materials and very sturdy. Customer support was also very helpful with my delivery questions.'
-  }
-];
 
 export const ProductDetail = () => {
   const { id } = useParams();
@@ -78,6 +32,8 @@ export const ProductDetail = () => {
   const { addItem } = useCart();
   const { user, profile } = useAuth();
   
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'reviews'>('desc');
@@ -89,8 +45,28 @@ export const ProductDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [realtimeReviews, setRealtimeReviews] = useState<any[]>([]);
 
-  // For now, use mock product regardless of ID
-  const product = MOCK_PRODUCT;
+  // Fetch product data
+  useEffect(() => {
+    if (!id) return;
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const docRef = doc(db, 'products', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+        } else {
+          toast.error('Product not found');
+          navigate('/');
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `products/${id}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
 
   // Real-time reviews listener
   useEffect(() => {
@@ -114,7 +90,9 @@ export const ProductDetail = () => {
   }, [id]);
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    if (product) {
+      addItem(product, quantity);
+    }
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -146,6 +124,24 @@ export const ProductDetail = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="pt-32 pb-24 max-w-7xl mx-auto px-6 animate-pulse">
+        <div className="h-4 w-48 bg-gray-100 rounded mb-12" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div className="aspect-[4/5] bg-gray-100 rounded-[32px]" />
+          <div className="space-y-6">
+            <div className="h-12 w-3/4 bg-gray-100 rounded" />
+            <div className="h-6 w-1/4 bg-gray-100 rounded" />
+            <div className="h-24 w-full bg-gray-100 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) return null;
 
   const getStockInfo = () => {
     if (product.stock > 10) {
@@ -193,7 +189,7 @@ export const ProductDetail = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                src={product.images[selectedImage]} 
+                src={product.images && product.images[selectedImage] ? product.images[selectedImage] : 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?auto=format&fit=crop&q=80&w=800'} 
                 alt={product.title}
                 className="w-full h-full object-cover"
               />
@@ -205,7 +201,7 @@ export const ProductDetail = () => {
           </div>
 
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-            {product.images.map((img, idx) => (
+            {product.images && product.images.length > 0 && product.images.map((img: string, idx: number) => (
               <button 
                 key={idx}
                 onClick={() => setSelectedImage(idx)}
@@ -406,7 +402,7 @@ export const ProductDetail = () => {
 
               <div className="space-y-12">
                 {/* Combined Mock and Real-time reviews */}
-                {[...realtimeReviews, ...REVIEWS].map((review) => (
+                {realtimeReviews.map((review) => (
                   <div key={review.id} className="border-b border-gray-50 pb-12">
                     <div className="flex justify-between items-start mb-4">
                       <div>

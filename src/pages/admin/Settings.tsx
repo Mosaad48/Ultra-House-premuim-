@@ -20,7 +20,20 @@ import {
   ChevronRight,
   Database,
   Palette,
-  Layout
+  Layout,
+  MapPin,
+  CreditCard as PaymentIcon,
+  ShoppingBag as CheckoutIcon,
+  Users as CustomersIcon,
+  Truck as ShippingIcon,
+  HandCoins,
+  Puzzle as AppIcon,
+  Globe as DomainIcon,
+  History,
+  Mail as NotificationsIcon,
+  Braces,
+  Languages as LangIcon,
+  EyeOff
 } from 'lucide-react';
 import { useStore } from '../../hooks/useStore';
 import { Button } from '../../components/ui/button';
@@ -32,7 +45,27 @@ import { Progress } from '../../components/ui/progress';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
-type SettingsTab = 'general' | 'plan' | 'payments' | 'shipping' | 'checkout' | 'notifications' | 'languages' | 'policies' | 'appearance';
+type SettingsTab = 
+  | 'general' 
+  | 'plan' 
+  | 'billing' 
+  | 'users' 
+  | 'payments' 
+  | 'checkout' 
+  | 'customer-accounts' 
+  | 'shipping' 
+  | 'taxes' 
+  | 'locations' 
+  | 'apps' 
+  | 'sales-channels' 
+  | 'domains' 
+  | 'customer-events' 
+  | 'notifications' 
+  | 'meta-objects' 
+  | 'languages' 
+  | 'privacy' 
+  | 'policies' 
+  | 'appearance';
 
 export const AdminSettings = () => {
   const { currentStore, updateStore } = useStore();
@@ -48,12 +81,22 @@ export const AdminSettings = () => {
   const tabs: { id: SettingsTab, label: string, icon: any }[] = [
     { id: 'general', label: 'General', icon: Store },
     { id: 'appearance', label: 'Admin Appearance', icon: Palette },
-    { id: 'plan', label: 'Subscription Plan', icon: CreditCard },
-    { id: 'payments', label: 'Payments', icon: Billing },
-    { id: 'shipping', label: 'Shipping & Delivery', icon: Truck },
-    { id: 'checkout', label: 'Checkout', icon: ShoppingBag },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'languages', label: 'Languages', icon: Languages },
+    { id: 'plan', label: 'Plan', icon: Layout },
+    { id: 'billing', label: 'Billing', icon: Billing },
+    { id: 'users', label: 'Users and Permissions', icon: UserCheck },
+    { id: 'payments', label: 'Payments', icon: PaymentIcon },
+    { id: 'checkout', label: 'Checkout', icon: CheckoutIcon },
+    { id: 'customer-accounts', label: 'Customer accounts', icon: CustomersIcon },
+    { id: 'shipping', label: 'Shipping and delivery', icon: ShippingIcon },
+    { id: 'taxes', label: 'Taxes and duties', icon: HandCoins },
+    { id: 'locations', label: 'Locations', icon: MapPin },
+    { id: 'apps', label: 'Apps and sales channels', icon: AppIcon },
+    { id: 'domains', label: 'Domains', icon: DomainIcon },
+    { id: 'customer-events', label: 'Customer events', icon: History },
+    { id: 'notifications', label: 'Notifications', icon: NotificationsIcon },
+    { id: 'meta-objects', label: 'Custom data', icon: Braces },
+    { id: 'languages', label: 'Languages', icon: LangIcon },
+    { id: 'privacy', label: 'Customer privacy', icon: EyeOff },
     { id: 'policies', label: 'Policies', icon: FileText }
   ];
 
@@ -73,7 +116,11 @@ export const AdminSettings = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-8 pb-20">
       {/* Sidebar Navigation */}
-      <div className="w-full lg:w-64 space-y-1">
+      <div className="w-full lg:w-72 space-y-1 overflow-y-auto max-h-[80vh] scrollbar-hide">
+        <div className="px-4 mb-4 relative">
+          <Search size={14} className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input placeholder="Search settings" className="pl-9 h-9 bg-gray-50 border-transparent text-xs" />
+        </div>
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-4 mb-4">Store Settings</h2>
         {tabs.map((tab) => (
           <button
@@ -299,14 +346,14 @@ export const AdminSettings = () => {
               </div>
             )}
             
-            {/* More sections can be added similarly */}
-            {['shipping', 'checkout', 'notifications', 'languages', 'policies'].includes(activeTab) && (
+            {/* Generic Catch-all for extra sections */}
+            {!['general', 'appearance', 'plan', 'payments'].includes(activeTab) && (
               <Card className="border-none shadow-sm ring-1 ring-black/[0.05] p-20 text-center">
                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Database className="text-gray-300" />
                  </div>
                  <h3 className="font-bold mb-2">Module Coming Soon</h3>
-                 <p className="text-sm text-gray-500">We are currently building this settings module. Check back in a few days.</p>
+                 <p className="text-sm text-gray-500">We are currently building the {activeTab.replace(/-/g, ' ')} settings module.</p>
               </Card>
             )}
           </motion.div>

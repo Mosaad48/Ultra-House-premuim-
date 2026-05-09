@@ -117,15 +117,30 @@ export const AdminSidebar = () => {
           <SidebarItem icon={Home} label="Home" href="/admin" />
           <SidebarItem icon={ShoppingCart} label="Orders" href="/admin/orders" badge="12" />
           <SidebarItem icon={ShoppingBag} label="Products" href="/admin/products" />
+          <SidebarItem icon={Package} label="Inventory" href="/admin/inventory" />
           <SidebarItem icon={Users} label="Customers" href="/admin/customers" />
-          <SidebarItem icon={Layers} label="Content" href="/admin/content" />
           <SidebarItem icon={BarChart3} label="Analytics" href="/admin/analytics" />
           <SidebarItem icon={Megaphone} label="Marketing" href="/admin/marketing" />
           <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" />
+          <SidebarItem icon={Layers} label="Content" href="/admin/content" />
 
           <SectionHeader label="Sales Channels" />
           <div className="space-y-0.5">
-            <SidebarItem icon={Store} label="Online Store" href="/admin/store-customizer" />
+            <div className="flex items-center justify-between group">
+              <SidebarItem icon={Store} label="Online Store" href="/admin/store-customizer" />
+              <a 
+                href="/" 
+                target="_blank" 
+                rel="noreferrer"
+                className={cn(
+                  "mr-2 p-1 rounded hover:bg-gray-200 transition-colors",
+                  isLight ? "text-gray-400 hover:text-black" : "text-gray-500 hover:text-white hover:bg-[#303030]"
+                )}
+                title="View your store"
+              >
+                <ExternalLink size={14} />
+              </a>
+            </div>
             <SidebarItem icon={Smartphone} label="Point of Sale" href="/admin/pos" />
             <SidebarItem icon={Globe} label="Markets" href="/admin/markets" />
           </div>
@@ -134,12 +149,6 @@ export const AdminSidebar = () => {
           <div className="space-y-0.5">
             <SidebarItem icon={Puzzle} label="Apps" href="/admin/apps" />
             <SidebarItem icon={Languages} label="Translate & Adapt" href="/admin/translations" />
-          </div>
-
-          <SectionHeader label="Tools" />
-          <div className="space-y-0.5">
-            <SidebarItem icon={Bot} label="AI Sidekick" href="/admin/ai" />
-            <SidebarItem icon={Package} label="Inventory" href="/admin/inventory" />
           </div>
         </nav>
       </div>

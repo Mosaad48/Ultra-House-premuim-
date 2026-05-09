@@ -193,10 +193,8 @@ export const AdminOrders = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="hover:bg-white">
-                          <MoreVertical size={16} />
-                        </Button>
+                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="hover:bg-white" />}>
+                        <MoreVertical size={16} />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[180px] rounded-xl">
                         <DropdownMenuItem>
