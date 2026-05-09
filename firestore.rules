@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Global Denial ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    
+    // Admin check: checks if user is a platform admin (us)
+    function isPlatformAdmin() { 
+      return isSignedIn() && isVerified() && (
+        request.auth.token.email == 'muhammedhmad111@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Tenant check: checks if user owns the specific store
+    function isStoreOwner(storeId) {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid ||
+        isPlatformAdmin()
+      );
+    }
+    
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Entity Validations ---
+    function isValidStore(data) {
+      return data.keys().hasAll(['name', 'slug', 'ownerId']) &&
+             data.ownerId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.slug is string && data.slug.size() <= 100;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.role in ['user', 'admin'] &&
+             data.email is string && data.email.size() <= 128;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['storeId', 'title', 'description', 'price', 'category', 'stock']) &&
+             isStoreOwner(data.storeId) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.price is number && data.price >= 0 &&
+             data.stock is int && data.stock >= 0;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['storeId', 'userId', 'items', 'total', 'status']) &&
+             data.total is number && data.total >= 0;
+    }
+
+    // --- Matches ---
+    
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isPlatformAdmin();
+      allow list: if isPlatformAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) || isPlatformAdmin();
+    }
+
+    match /stores/{storeId} {
+      allow read: if true; // Public can see store info for themes etc.
+      allow create: if isSignedIn() && isValidStore(incoming());
+      allow update: if isStoreOwner(storeId);
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isStoreOwner(incoming().storeId) && isValidProduct(incoming());
+      allow update: if isStoreOwner(existing().storeId) && isValidProduct(incoming()) && incoming().storeId == existing().storeId;
+      allow delete: if isStoreOwner(existing().storeId);
+    }
+
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId));
+      allow list: if isSignedIn() && (isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId));
+      allow create: if isSignedIn() && isValidOrder(incoming()) && (incoming().userId == request.auth.uid || isStoreOwner(incoming().storeId));
+      allow update: if isStoreOwner(resource.data.storeId);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+  }
+}
