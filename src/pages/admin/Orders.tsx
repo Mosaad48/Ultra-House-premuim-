@@ -82,7 +82,8 @@ export const AdminOrders = () => {
 
   const filteredOrders = orders.filter(o => 
     o.id.toLowerCase().includes(search.toLowerCase()) ||
-    o.userId.toLowerCase().includes(search.toLowerCase())
+    (o.customerName && o.customerName.toLowerCase().includes(search.toLowerCase())) ||
+    (o.customerEmail && o.customerEmail.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -126,7 +127,7 @@ export const AdminOrders = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <Input 
-              placeholder="Search by order ID or user..." 
+              placeholder="Search orders..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 h-10 rounded-xl bg-gray-50/50 border-gray-100" 
@@ -162,14 +163,12 @@ export const AdminOrders = () => {
               ) : filteredOrders.map((order) => (
                 <TableRow key={order.id} className="cursor-pointer group hover:bg-gray-50/50">
                   <TableCell>
-                    <span className="font-mono text-xs font-bold text-gray-800">#{order.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="font-mono text-xs font-bold text-gray-800">#{order.id.slice(-6).toUpperCase()}</span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold">
-                        {order.userId.slice(0, 2).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-medium">{order.userId.slice(0, 12)}...</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900">{order.customerName || 'Guest Customer'}</span>
+                      <span className="text-[10px] text-gray-500 font-medium">{order.customerEmail}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-500 text-xs">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useLanguage } from '../../hooks/useLanguage';
@@ -11,8 +12,14 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const { items, removeItem, updateQuantity, total } = useCart();
   const { t, isRtl } = useLanguage();
+
+  const handleCheckout = () => {
+    onClose();
+    navigate('/checkout');
+  };
 
   return (
     <AnimatePresence>
@@ -101,7 +108,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <span className="text-gray-500">Subtotal</span>
                   <span className="text-2xl font-display font-bold">{formatPrice(total)}</span>
                 </div>
-                <button className="w-full bg-black text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors group">
+                <button 
+                  onClick={handleCheckout}
+                  className="w-full bg-black text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors group"
+                >
                   {t('cart.checkout')} 
                   <ArrowRight size={20} className={`${isRtl ? 'rotate-180' : ''} group-hover:translate-x-1 transition-transform`} />
                 </button>

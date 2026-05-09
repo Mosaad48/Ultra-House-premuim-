@@ -56,8 +56,10 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['storeId', 'userId', 'items', 'total', 'status']) &&
-             data.total is number && data.total >= 0;
+      return data.keys().hasAll(['storeId', 'userId', 'items', 'total', 'status', 'customerEmail', 'customerName', 'shippingAddress']) &&
+             data.total is number && data.total >= 0 &&
+             data.customerEmail is string && data.customerEmail.size() <= 128 &&
+             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     }
 
     // --- Matches ---
@@ -90,9 +92,9 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow get: if isSignedIn() && (isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId));
+      allow get: if (isSignedIn() && (isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId))) || (resource.data.userId == 'guest');
       allow list: if isSignedIn() && (isOwner(resource.data.userId) || isStoreOwner(resource.data.storeId));
-      allow create: if isSignedIn() && isValidOrder(incoming()) && (incoming().userId == request.auth.uid || isStoreOwner(incoming().storeId));
+      allow create: if isValidOrder(incoming());
       allow update: if isStoreOwner(resource.data.storeId);
     }
 

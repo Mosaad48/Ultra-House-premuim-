@@ -9,6 +9,8 @@ import { AdminSettings } from './pages/admin/Settings';
 import { StoreCustomizer } from './pages/admin/StoreCustomizer';
 import { Home } from './pages/storefront/Home';
 import { ProductDetail } from './pages/storefront/ProductDetail';
+import { Checkout } from './pages/storefront/Checkout';
+import { OrderSuccess } from './pages/storefront/OrderSuccess';
 import { Login } from './pages/Login';
 import { CartProvider } from './hooks/useCart';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -55,8 +57,9 @@ const AppContent = () => {
           <Route index element={<Home />} />
           <Route path="product/:id" element={<ProductDetail />} />
           <Route path="collections" element={<Home />} />
-          <Route path="cart" element={<Home />} />
-          <Route path="checkout" element={<Home />} />
+          <Route path="cart" element={<Checkout />} />
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="order-success" element={<OrderSuccess />} />
           <Route path="account" element={<Navigate to="/login" />} />
         </Route>
 

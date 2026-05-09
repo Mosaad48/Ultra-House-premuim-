@@ -24,6 +24,7 @@ import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, g
 import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
 import { formatPrice, cn } from '../../lib/utils';
 import { Product } from '../../types';
+import { toast } from 'sonner';
 
 export const ProductDetail = () => {
   const { id } = useParams();
