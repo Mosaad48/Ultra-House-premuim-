@@ -19,9 +19,7 @@ import {
 import { useCart } from '../../hooks/useCart';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useAuth } from '../../hooks/useAuth';
-import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
+import { supabase } from '../../lib/supabase';
 import { formatPrice, cn } from '../../lib/utils';
 import { Product } from '../../types';
 import { toast } from 'sonner';
@@ -69,27 +67,50 @@ export const ProductDetail = () => {
       }
     };
     fetchProduct();
+
+    // Subscribe to changes for this product
+    const subscription = supabase
+      .channel(`product-${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products', filter: `id=eq.${id}` }, (payload) => {
+        setProduct(productService._mapFromDb(payload.new));
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [id, navigate]);
 
   // Real-time reviews listener
   useEffect(() => {
     if (!id) return;
-    const q = query(
-      collection(db, 'products', id, 'reviews'),
-      orderBy('createdAt', 'desc')
-    );
+    
+    const fetchReviews = async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('product_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching reviews:', error);
+      } else {
+        setRealtimeReviews(data || []);
+      }
+    };
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const reviews = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRealtimeReviews(reviews);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `products/${id}/reviews`);
-    });
+    fetchReviews();
 
-    return () => unsubscribe();
+    const subscription = supabase
+      .channel(`reviews-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews', filter: `product_id=eq.${id}` }, () => {
+        fetchReviews();
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [id]);
 
   const handleAddToCart = () => {
@@ -107,22 +128,25 @@ export const ProductDetail = () => {
 
     setIsSubmitting(true);
     try {
-      const reviewData = {
-        productId: id,
-        userId: user.uid,
-        userName: profile?.displayName || 'Anonymous',
-        rating: reviewRating,
-        comment: reviewComment,
-        createdAt: serverTimestamp()
-      };
+      const { error } = await supabase
+        .from('reviews')
+        .insert([{
+          product_id: id,
+          user_id: user.id,
+          user_name: profile?.displayName || 'Anonymous',
+          rating: reviewRating,
+          comment: reviewComment
+        }]);
 
-      await addDoc(collection(db, 'products', id, 'reviews'), reviewData);
+      if (error) throw error;
       
       setIsReviewModalOpen(false);
       setReviewComment('');
       setReviewRating(5);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `products/${id}/reviews`);
+      toast.success('Review submitted successfully!');
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review');
     } finally {
       setIsSubmitting(false);
     }
@@ -169,19 +193,20 @@ export const ProductDetail = () => {
   };
 
   const stockInfo = getStockInfo();
+  const brandColor = '#000000'; // Default black
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-6">
+    <div className="pt-20 sm:pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6">
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-12">
-        <Link to="/" className="hover:text-black transition-colors">Home</Link>
-        <ChevronRight size={14} className={isRtl ? 'rotate-180' : ''} />
-        <Link to="/shop" className="hover:text-black transition-colors">Shop</Link>
-        <ChevronRight size={14} className={isRtl ? 'rotate-180' : ''} />
-        <span className="text-black font-medium">{product.title}</span>
+      <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-gray-400 mb-8 sm:mb-12">
+        <Link to="/" className="hover:text-black transition-colors uppercase tracking-widest font-black">Home</Link>
+        <ChevronRight size={12} className={isRtl ? 'rotate-180' : ''} />
+        <Link to="/shop" className="hover:text-black transition-colors uppercase tracking-widest font-black">Shop</Link>
+        <ChevronRight size={12} className={isRtl ? 'rotate-180' : ''} />
+        <span className="text-black font-black uppercase tracking-widest truncate max-w-[150px] sm:max-w-none">{product.title}</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 mb-24">
         {/* Gallery */}
         <div className="flex flex-col gap-6">
           <div className="aspect-[4/5] overflow-hidden rounded-[32px] bg-gray-100 relative group">
@@ -235,29 +260,33 @@ export const ProductDetail = () => {
               </div>
             </div>
             
-            <h1 className="text-5xl font-display font-black leading-tight mb-4">{product.title}</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black leading-tight mb-4">{product.title}</h1>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1 text-orange-400">
                 <Star size={18} fill="currentColor" />
                 <span className="text-black font-bold text-lg">{product.rating}</span>
                 <span className="text-gray-400 font-medium ml-1">({product.reviewsCount} reviews)</span>
               </div>
-              <div className="w-1 h-1 bg-gray-300 rounded-full" />
+              <div className="hidden xs:block w-1 h-1 bg-gray-300 rounded-full" />
               <button className="flex items-center gap-2 text-sm font-bold hover:text-accent transition-colors">
-                <Share2 size={16} /> Share Product
+                <Share2 size={16} /> <span className="hidden sm:inline">Share Product</span>
               </button>
             </div>
           </div>
 
           <div className="mb-10">
             <div className="flex items-end gap-4 mb-2">
-              <span className="text-4xl font-display font-black">{formatPrice(product.price)}</span>
+              <span className="text-3xl sm:text-4xl font-display font-black">{formatPrice(product.price)}</span>
               {product.originalPrice && (
-                <span className="text-2xl text-gray-300 line-through mb-1 font-medium">{formatPrice(product.originalPrice)}</span>
+                <span className="text-xl sm:text-2xl text-gray-300 line-through mb-1 font-medium">{formatPrice(product.originalPrice)}</span>
               )}
             </div>
-            <p className="text-accent font-bold text-sm">You save {formatPrice((product.originalPrice || 0) - product.price)} (23% Off)</p>
+            {product.originalPrice && (
+              <p className="text-accent font-bold text-sm">
+                You save {formatPrice(product.originalPrice - product.price)} ({Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% Off)
+              </p>
+            )}
           </div>
 
           <div className="space-y-8 mb-12">
@@ -315,12 +344,12 @@ export const ProductDetail = () => {
       </div>
 
       {/* Details & Reviews Tabs */}
-      <div className="bg-white rounded-[40px] border border-gray-100 p-8 md:p-16">
-        <div className="flex justify-center gap-12 mb-16 border-b border-gray-100">
+      <div className="bg-white rounded-[24px] sm:rounded-[40px] border border-gray-100 p-6 sm:p-8 md:p-16">
+        <div className="flex justify-center gap-6 sm:gap-12 mb-12 sm:mb-16 border-b border-gray-100 overflow-x-auto no-scrollbar whitespace-nowrap">
           <button 
             onClick={() => setActiveTab('desc')}
             className={cn(
-              "pb-6 text-sm font-bold uppercase tracking-[0.2em] transition-all relative",
+              "pb-4 sm:pb-6 text-[10px] sm:text-sm font-bold uppercase tracking-[0.2em] transition-all relative",
               activeTab === 'desc' ? "text-black" : "text-gray-300 hover:text-gray-400"
             )}
           >
@@ -330,7 +359,7 @@ export const ProductDetail = () => {
           <button 
             onClick={() => setActiveTab('reviews')}
             className={cn(
-              "pb-6 text-sm font-bold uppercase tracking-[0.2em] transition-all relative",
+              "pb-4 sm:pb-6 text-[10px] sm:text-sm font-bold uppercase tracking-[0.2em] transition-all relative",
               activeTab === 'reviews' ? "text-black" : "text-gray-300 hover:text-gray-400"
             )}
           >

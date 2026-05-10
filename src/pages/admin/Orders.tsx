@@ -13,9 +13,7 @@ import {
   XCircle,
   FileText
 } from 'lucide-react';
-import { db } from '../../lib/firebase';
-import { collection, onSnapshot, query, orderBy, updateDoc, doc } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
+import { storeService } from '../../services/storeService';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -51,32 +49,38 @@ export const AdminOrders = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    const path = 'orders';
-    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ords = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(ords);
+  const fetchOrders = async () => {
+    try {
+      const data = await storeService.getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+
+    // Subscribe to realtime updates
+    const subscription = storeService.subscribeToOrders(() => {
+      fetchOrders();
     });
-    return () => unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    const path = `orders/${orderId}`;
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        status: newStatus,
-        updatedAt: new Date().toISOString()
-      });
+      await storeService.updateOrderStatus(orderId, newStatus);
       toast.success(`Order status updated to ${newStatus}`);
+      // fetchOrders will be triggered by subscription
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      toast.error('Failed to update status');
     }
   };
 
@@ -134,7 +138,7 @@ export const AdminOrders = () => {
             />
           </div>
         </div>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto no-scrollbar">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent bg-gray-50/50">
@@ -172,7 +176,7 @@ export const AdminOrders = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-500 text-xs">
-                    {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : '—'}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '—'}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn(

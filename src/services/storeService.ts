@@ -140,12 +140,34 @@ export const storeService = {
       customerName: o.customer_name,
       customerEmail: o.customer_email,
       totalAmount: o.total_amount,
-      totalPrice: o.total_amount, // supporting both field names if needed
-      orderNumber: o.id.slice(0, 8).toUpperCase(),
+      total: o.total_amount, // supporting total as well
       status: o.status,
       shippingAddress: o.shipping_address,
       items: o.items,
       createdAt: o.created_at
     }));
+  },
+
+  async updateOrderStatus(orderId: string, status: string): Promise<void> {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
+  },
+
+  subscribeToOrders(callback: () => void) {
+    return supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => callback()
+      )
+      .subscribe();
   }
 };

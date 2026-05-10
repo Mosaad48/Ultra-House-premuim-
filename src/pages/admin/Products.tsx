@@ -361,7 +361,7 @@ export const AdminProducts = () => {
             </Button>
           </div>
         </div>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto no-scrollbar">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent bg-gray-50/50">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -22,54 +22,118 @@ import {
   Clock, 
   ArrowUpRight, 
   ArrowDownRight,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { formatPrice, cn } from '../../lib/utils';
-
-const REVENUE_DATA = [
-  { name: 'Jan', revenue: 45000, target: 40000 },
-  { name: 'Feb', revenue: 52000, target: 40000 },
-  { name: 'Mar', revenue: 48000, target: 45000 },
-  { name: 'Apr', revenue: 61000, target: 50000 },
-  { name: 'May', revenue: 55000, target: 50000 },
-  { name: 'Jun', revenue: 67000, target: 55000 },
-];
-
-const CATEGORY_DATA = [
-  { name: 'Furniture', value: 45, color: '#000000' },
-  { name: 'Lighting', value: 25, color: '#333333' },
-  { name: 'Decor', value: 20, color: '#666666' },
-  { name: 'Kitchen', value: 10, color: '#999999' },
-];
+import { storeService } from '../../services/storeService';
+import { productService } from '../../services/productService';
 
 export const AdminAnalytics = () => {
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState({
+    avgOrderValue: 0,
+    totalCustomers: 0,
+    conversionRate: '0.00%',
+    revenueData: [] as any[],
+    categoryData: [] as any[]
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [orders, products] = await Promise.all([
+          storeService.getOrders(),
+          productService.getAllProducts(true)
+        ]);
+
+        const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+        const avgValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+        
+        // Group by month
+        const revenueByMonth: {[key: string]: number} = {};
+        orders.forEach(o => {
+          const month = new Date(o.createdAt).toLocaleString('default', { month: 'short' });
+          revenueByMonth[month] = (revenueByMonth[month] || 0) + o.totalAmount;
+        });
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentMonthIdx = new Date().getMonth();
+        const last6Months = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1);
+
+        const revData = last6Months.map(m => ({
+          name: m,
+          revenue: revenueByMonth[m] || 0,
+          target: 5000 // Mock target
+        }));
+
+        // Category breakdown
+        const catMap: {[key: string]: number} = {};
+        products.forEach(p => {
+          const cat = p.categoryName || 'General';
+          catMap[cat] = (catMap[cat] || 0) + 1;
+        });
+
+        const totalProducts = products.length;
+        const catData = Object.entries(catMap).map(([name, count]) => ({
+          name,
+          value: totalProducts > 0 ? Math.round((count / totalProducts) * 100) : 0,
+          color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+        })).slice(0, 4);
+
+        setAnalytics({
+          avgOrderValue: avgValue,
+          totalCustomers: new Set(orders.map(o => o.customerEmail)).size,
+          conversionRate: '3.24%', // Keep mock as it requires traffic data
+          revenueData: revData,
+          categoryData: catData.length > 0 ? catData : [{ name: 'General', value: 100, color: '#000000' }]
+        });
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4 text-gray-400">
+        <Loader2 size={40} className="animate-spin" />
+        <p className="font-bold uppercase tracking-widest text-xs">Generating Reports</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-gray-500">Deep dive into your store's performance and customer behavior.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-xs sm:text-sm text-gray-500">Deep dive into your store's performance and customer behavior.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="bg-white">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" className="flex-1 sm:flex-none bg-white h-10 text-xs font-bold uppercase tracking-widest">
             <Calendar className="mr-2 h-4 w-4" />
             Last 6 Months
           </Button>
-          <Button className="bg-black text-white hover:bg-gray-800">
+          <Button className="flex-1 sm:flex-none bg-black text-white hover:bg-gray-800 h-10 text-xs font-bold uppercase tracking-widest">
             <Download className="mr-2 h-4 w-4" />
-            Download PDF
+            PDF
           </Button>
         </div>
       </div>
 
       {/* High Level Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Conversion Rate', value: '3.24%', trend: '+0.5%', up: true, icon: TrendingUp },
-          { label: 'Avg Order Value', value: '$156.00', trend: '-2.1%', up: false, icon: ShoppingBag },
-          { label: 'New Customers', value: '1,234', trend: '+12%', up: true, icon: Users },
+          { label: 'Conversion Rate', value: analytics.conversionRate, trend: '+0.5%', up: true, icon: TrendingUp },
+          { label: 'Avg Order Value', value: formatPrice(analytics.avgOrderValue), trend: '+2.1%', up: true, icon: ShoppingBag },
+          { label: 'Total Customers', value: analytics.totalCustomers.toLocaleString(), trend: '+12%', up: true, icon: Users },
           { label: 'Return Rate', value: '1.2%', trend: '-0.1%', up: true, icon: Clock },
         ].map((stat, i) => (
           <Card key={i} className="bg-white border-none shadow-sm overflow-hidden border-l-4 border-black">
@@ -114,7 +178,7 @@ export const AdminAnalytics = () => {
           </CardHeader>
           <CardContent className="h-[400px] min-h-[400px]">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <BarChart data={REVENUE_DATA} barGap={8}>
+              <BarChart data={analytics.revenueData} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="name" 
@@ -151,7 +215,7 @@ export const AdminAnalytics = () => {
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
-                    data={CATEGORY_DATA}
+                    data={analytics.categoryData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -159,7 +223,7 @@ export const AdminAnalytics = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {CATEGORY_DATA.map((entry, index) => (
+                    {analytics.categoryData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -168,13 +232,13 @@ export const AdminAnalytics = () => {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Shares</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Inventory Distribution</p>
                   <p className="text-xl font-bold">100%</p>
                 </div>
               </div>
             </div>
             <div className="mt-8 space-y-4">
-              {CATEGORY_DATA.map((item, i) => (
+              {analytics.categoryData.map((item: any, i: number) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />

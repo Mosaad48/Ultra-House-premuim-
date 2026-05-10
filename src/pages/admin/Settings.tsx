@@ -139,27 +139,30 @@ export const AdminSettings = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-8 pb-20">
       {/* Sidebar Navigation */}
-      <div className="w-full lg:w-72 space-y-1 overflow-y-auto max-h-[80vh] scrollbar-hide">
-        <div className="px-4 mb-4 relative">
+      <div className="w-full lg:w-72 overflow-x-auto lg:overflow-y-auto no-scrollbar lg:max-h-[80vh]">
+        <div className="hidden lg:block px-4 mb-4 relative">
           <Search size={14} className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input placeholder="Search settings" className="pl-9 h-9 bg-gray-50 border-transparent text-xs" />
         </div>
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-4 mb-4">Store Settings</h2>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
-              activeTab === tab.id 
-                ? "bg-black text-white shadow-lg" 
-                : "text-gray-500 hover:bg-white hover:text-gray-900"
-            )}
-          >
-            <tab.icon size={18} className={activeTab === tab.id ? "text-accent" : "text-gray-400"} />
-            {tab.label}
-          </button>
-        ))}
+        <h2 className="hidden lg:block text-sm font-bold text-gray-400 uppercase tracking-widest px-4 mb-4">Store Settings</h2>
+        
+        <div className="flex lg:flex-col gap-1 px-4 lg:px-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap",
+                activeTab === tab.id 
+                  ? "bg-black text-white shadow-lg" 
+                  : "text-gray-500 hover:bg-white hover:text-gray-900"
+              )}
+            >
+              <tab.icon size={18} className={activeTab === tab.id ? "text-accent" : "text-gray-400"} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -378,5 +381,3 @@ export const AdminSettings = () => {
     </div>
   );
 };
-
-import { ShoppingBag } from 'lucide-react';

@@ -8,13 +8,13 @@ export const OrderSuccess = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="pt-32 pb-24 min-h-screen bg-gray-50/50 flex items-center justify-center">
+    <div className="pt-20 sm:pt-32 pb-24 min-h-screen bg-gray-50/50 flex items-center justify-center">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-xl w-full px-6 text-center"
+        className="max-w-xl w-full px-4 sm:px-6 text-center"
       >
-        <div className="bg-white p-12 rounded-[48px] shadow-xl shadow-black/[0.03] ring-1 ring-black/[0.05] relative overflow-hidden">
+        <div className="bg-white p-6 sm:p-12 rounded-[32px] sm:rounded-[48px] shadow-xl shadow-black/[0.03] ring-1 ring-black/[0.05] relative overflow-hidden">
           {/* Decorative background element */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           

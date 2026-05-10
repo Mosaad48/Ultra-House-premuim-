@@ -189,5 +189,19 @@ export const productService = {
     }
 
     return (data || []).map(p => this._mapFromDb(p));
+  },
+
+  /**
+   * Subscribe to product changes
+   */
+  subscribeToProducts(callback: () => void) {
+    return supabase
+      .channel('products-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => callback()
+      )
+      .subscribe();
   }
 };

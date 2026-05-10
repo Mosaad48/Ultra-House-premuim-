@@ -17,9 +17,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Card } from '../../components/ui/card';
-import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
+import { storeService } from '../../services/storeService';
 import { toast } from 'sonner';
 
 export const Checkout = () => {
@@ -54,10 +52,10 @@ export const Checkout = () => {
     setIsSubmitting(true);
     try {
       const orderData = {
-        storeId: items[0]?.storeId || 'default',
-        userId: user?.uid || 'guest',
         customerEmail: formData.email,
         customerName: `${formData.firstName} ${formData.lastName}`,
+        totalAmount: total,
+        status: 'pending' as const,
         shippingAddress: {
           address: formData.address,
           city: formData.city,
@@ -70,18 +68,14 @@ export const Checkout = () => {
           price: item.price,
           quantity: item.quantity,
           image: item.images[0]
-        })),
-        total,
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        }))
       };
 
-      await addDoc(collection(db, 'orders'), orderData);
+      await storeService.createOrder(orderData);
       clearCart();
       navigate('/order-success');
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'orders');
+      console.error('Checkout error:', error);
       toast.error('Failed to place order. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -104,17 +98,17 @@ export const Checkout = () => {
   }
 
   return (
-    <div className="pt-32 pb-24 bg-gray-50/50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="pt-20 sm:pt-32 pb-24 bg-gray-50/50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors mb-8 group"
+          className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors mb-6 sm:mb-8 group"
         >
           <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-bold uppercase tracking-widest">Back to store</span>
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-widest">Back to store</span>
         </button>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
           {/* Main Form Content */}
           <div className="lg:col-span-8 space-y-8">
             <section className="space-y-6">

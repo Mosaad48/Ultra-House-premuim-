@@ -36,6 +36,15 @@ export const Home = () => {
     };
 
     fetchData();
+
+    // Subscribe to realtime updates
+    const subscription = productService.subscribeToProducts(() => {
+      fetchData();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const brandColor = currentStore?.primaryColor || '#000000';
@@ -44,38 +53,38 @@ export const Home = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative h-screen min-h-[700px] flex items-center overflow-hidden">
+      <section className="relative h-[85vh] sm:h-screen min-h-[500px] sm:min-h-[700px] flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
             src={activeHero?.imageUrl || "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=2000"} 
             alt="Hero" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl text-white"
+            className="max-w-2xl text-white px-2 sm:px-0"
           >
-            <h1 className="text-6xl md:text-8xl font-display font-black leading-[0.9] mb-8" style={{ fontFamily: currentStore?.fontFamily || 'inherit' }}>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-black leading-[0.9] mb-6 sm:mb-8" style={{ fontFamily: currentStore?.fontFamily || 'inherit' }}>
               {activeHero?.title || currentStore?.storeName || t('hero.title')}
             </h1>
-            <p className="text-lg md:text-xl text-white/90 mb-12 max-w-lg leading-relaxed font-medium">
+            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-12 max-w-lg leading-relaxed font-medium">
               {activeHero?.subtitle || t('hero.desc')}
             </p>
-            <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               <Link
                 to={activeHero?.buttonLink || '/products'}
-                className="bg-white text-black px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all duration-300 group shadow-2xl"
+                className="bg-white text-black px-8 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all duration-300 group shadow-2xl"
                 style={{ color: brandColor }}
               >
                 {activeHero?.buttonText || t('hero.shop')} 
                 <ArrowRight size={20} className={cn("group-hover:translate-x-1 transition-transform", isRtl && "rotate-180")} />
               </Link>
-              <button className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-10 py-5 rounded-2xl font-bold hover:bg-white/20 transition-all">
+              <button className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-8 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold hover:bg-white/20 transition-all">
                 {t('hero.story')}
               </button>
             </div>
@@ -83,9 +92,9 @@ export const Home = () => {
         </div>
 
         {/* Feature Bar */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white py-12 md:py-20 border-t border-gray-100">
+        <div className="absolute bottom-0 left-0 right-0 bg-white py-8 sm:py-12 md:py-20 border-t border-gray-100 hidden sm:block">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
               <FeatureItem icon={<Truck />} title="Fast Delivery" desc="Across GCC within 3-5 days" />
               <FeatureItem icon={<ShieldCheck />} title="Secure Payment" desc="100% secure checkout" />
               <FeatureItem icon={<RotateCcw />} title="Easy Returns" desc="30-day return policy" />
@@ -95,21 +104,29 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* Feature Section for Mobile */}
+      <section className="py-12 bg-gray-50 sm:hidden">
+        <div className="px-6 flex flex-col gap-8">
+          <FeatureItem icon={<Truck />} title="Fast Delivery" desc="Across GCC within 3-5 days" />
+          <FeatureItem icon={<ShieldCheck />} title="Secure Payment" desc="100% secure checkout" />
+        </div>
+      </section>
+
       {/* Featured Products */}
-      <section className="py-32 max-w-7xl mx-auto px-6 mb-20">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+      <section className="py-20 sm:py-32 max-w-7xl mx-auto px-4 sm:px-6 mb-20">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 sm:mb-16 gap-6">
           <div>
-            <h2 className="text-5xl font-display font-black mb-6">Featured Pieces</h2>
-            <p className="text-gray-500 max-w-lg text-lg">
+            <h2 className="text-3xl sm:text-5xl font-display font-black mb-4 sm:mb-6">Featured Pieces</h2>
+            <p className="text-gray-500 max-w-lg text-base sm:text-lg">
               Explore our most popular pieces, chosen for their exceptional design and timeless quality.
             </p>
           </div>
-          <button className="px-8 py-4 border-2 border-black rounded-xl font-bold hover:bg-black hover:text-white transition-all">
+          <button className="w-full sm:w-auto px-8 py-4 border-2 border-black rounded-xl font-bold hover:bg-black hover:text-white transition-all text-xs tracking-widest uppercase font-display">
             VIEW ALL PRODUCTS
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16 min-h-[400px] relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 sm:gap-x-10 gap-y-12 sm:gap-y-16 min-h-[400px] relative">
           {loading ? (
             <div className="col-span-full h-64 flex flex-col items-center justify-center gap-4 text-gray-400">
               <Loader2 size={40} className="animate-spin" />
