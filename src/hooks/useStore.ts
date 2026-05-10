@@ -1,82 +1,61 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Store } from '../types';
-import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { StoreSettings } from '../types';
+import { storeService } from '../services/storeService';
 
 interface StoreState {
-  currentStore: Store | null;
+  currentStore: StoreSettings | null;
   loading: boolean;
   error: string | null;
-  fetchStore: (storeId: string) => Promise<void>;
-  fetchStoreBySlug: (slug: string) => Promise<void>;
-  updateStore: (storeId: string, updates: Partial<Store>) => Promise<void>;
-  setStore: (store: Store | null) => void;
+  fetchSettings: () => Promise<void>;
+  updateSettings: (updates: Partial<StoreSettings>) => Promise<void>;
+  setSettings: (settings: StoreSettings | null) => void;
 }
 
 export const useStore = create<StoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       currentStore: null,
       loading: false,
       error: null,
-      fetchStore: async (storeId) => {
+      fetchSettings: async () => {
         set({ loading: true, error: null });
         try {
-          const docRef = doc(db, 'stores', storeId);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            set({ currentStore: { id: docSnap.id, ...docSnap.data() } as Store, loading: false });
+          const settings = await storeService.getSettings();
+          if (settings) {
+            set({ currentStore: settings, loading: false });
           } else {
-            set({ error: 'Store not found', loading: false });
+            // Provide a default if nothing in DB
+            const defaultSettings: StoreSettings = {
+              id: 'default',
+              storeName: 'LUMIÈRE',
+              primaryColor: '#000000',
+              accentColor: '#fbbf24',
+              fontFamily: 'Inter',
+              currency: 'USD',
+              updatedAt: new Date().toISOString()
+            };
+            set({ currentStore: defaultSettings, loading: false });
           }
         } catch (err: any) {
           set({ error: err.message, loading: false });
         }
       },
-      fetchStoreBySlug: async (slug = 'main-store') => {
-        // Single store focus: try to get the store by slug, fallback to first available
-        const current = get().currentStore;
-        if (current && current.slug === slug) return;
-
-        set({ loading: true, error: null });
+      updateSettings: async (updates) => {
+        set({ loading: true });
         try {
-          const storesRef = collection(db, 'stores');
-          const q = query(storesRef, where("slug", "==", slug));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            const docSnap = querySnapshot.docs[0];
-            set({ currentStore: { id: docSnap.id, ...docSnap.data() } as Store, loading: false });
-          } else {
-            // If no store exists, fetch the first one in the collection
-            const allStoresQ = query(storesRef, limit(1));
-            const allStoresSnap = await getDocs(allStoresQ);
-            
-            if (!allStoresSnap.empty) {
-              const docSnap = allStoresSnap.docs[0];
-              set({ currentStore: { id: docSnap.id, ...docSnap.data() } as Store, loading: false });
-            } else {
-              set({ error: 'Store not found', loading: false });
-            }
-          }
-        } catch (err: any) {
-          set({ error: err.message, loading: false });
-        }
-      },
-      updateStore: async (storeId, updates) => {
-        try {
-          const docRef = doc(db, 'stores', storeId);
-          await updateDoc(docRef, updates as any);
+          await storeService.updateSettings(updates);
           set((state) => ({
-            currentStore: state.currentStore ? { ...state.currentStore, ...updates } : null
+            currentStore: state.currentStore ? { ...state.currentStore, ...updates } : null,
+            loading: false
           }));
         } catch (err: any) {
-          console.error('Failed to update store:', err);
+          console.error('Failed to update settings:', err);
+          set({ loading: false, error: err.message });
           throw err;
         }
       },
-      setStore: (store) => set({ currentStore: store }),
+      setSettings: (settings) => set({ currentStore: settings }),
     }),
     {
       name: 'lumiere-store-storage',

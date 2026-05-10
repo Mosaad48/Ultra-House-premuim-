@@ -18,9 +18,10 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 
 export const AdminLayout = () => {
-  const { user, profile, loading } = useAuth();
+  const { profile } = useAuth();
   const { currentStore } = useStore();
   const [isHydrated, setIsHydrated] = React.useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
   const { isRtl } = useLanguage();
   const location = useLocation();
 
@@ -32,18 +33,13 @@ export const AdminLayout = () => {
     return () => unsub();
   }, []);
 
-  // Protected route: Check if user is logged in
-  if (!loading && !user) {
-    return <Navigate to="/login" replace />;
-  }
+  // Close mobile sidebar on route change
+  React.useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [location.pathname]);
 
-  // Wait for both auth and store hydration before deciding on state
-  if (!loading && isHydrated && user && !currentStore) {
-    // If no store exists, we'll let the layout render and handle the empty state gracefully
-  }
-
-  if (loading || !isHydrated) {
-    const loaderColor = currentStore?.adminAppearance?.primaryColor || '#000000';
+  if (!isHydrated) {
+    const loaderColor = currentStore?.primaryColor || '#000000';
     return (
       <div className="h-screen flex items-center justify-center bg-[#f1f1f1]">
         <div 
@@ -54,8 +50,8 @@ export const AdminLayout = () => {
     );
   }
 
-  const primaryColor = currentStore?.adminAppearance?.primaryColor || '#000000';
-  const typography = currentStore?.adminAppearance?.typography || 'Inter';
+  const primaryColor = currentStore?.primaryColor || '#000000';
+  const typography = currentStore?.fontFamily || 'Inter';
 
   return (
     <div 
@@ -69,16 +65,35 @@ export const AdminLayout = () => {
         '--admin-primary': primaryColor 
       }}
     >
-      <AdminSidebar />
+      <div className={cn(
+        "fixed inset-0 bg-black/50 z-50 lg:hidden transition-opacity",
+        isMobileSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+      )} onClick={() => setIsMobileSidebarOpen(false)} />
+
+      <div className={cn(
+        "fixed inset-y-0 z-50 lg:relative lg:block transition-transform duration-300",
+        isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        isRtl ? "right-0" : "left-0"
+      )}>
+        <AdminSidebar />
+      </div>
       
       <main className={cn(
-        "transition-all duration-300 min-h-screen flex flex-col",
-        isRtl ? "pr-64" : "pl-64"
+        "transition-all duration-300 min-h-screen flex flex-col min-w-0 w-full",
+        !isMobileSidebarOpen && (isRtl ? "lg:pr-64" : "lg:pl-64")
       )}>
         {/* Top Header */}
-        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-md bg-white/80">
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40 backdrop-blur-md bg-white/80">
           <div className="flex items-center gap-4 flex-1">
-            <div className="relative w-full max-w-md group">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden" 
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </Button>
+            <div className="relative w-full max-w-md group hidden sm:block">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" />
               <input 
                 type="text" 
@@ -98,12 +113,12 @@ export const AdminLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 mr-4">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] font-bold uppercase tracking-wider h-6">
+          <div className="flex items-center gap-2 lg:gap-4">
+            <div className="flex items-center gap-1 lg:mr-4">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] font-bold uppercase tracking-wider h-6 hidden md:flex">
                 Online
               </Badge>
-              <Button variant="ghost" size="sm" className="h-8 gap-2 font-bold text-xs" onClick={() => window.open('/', '_blank')}>
+              <Button variant="ghost" size="sm" className="h-8 gap-2 font-bold text-xs hidden sm:flex" onClick={() => window.open('/', '_blank')}>
                 View Store
                 <ExternalLink size={14} className="text-gray-400" />
               </Button>
@@ -113,15 +128,15 @@ export const AdminLayout = () => {
               <Bell size={18} className="text-gray-600" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </button>
-            <div className="h-6 w-[1px] bg-gray-200 mx-2" />
+            <div className="h-6 w-[1px] bg-gray-200 lg:mx-2" />
             
             <button className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-xl hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200 group">
-              <div className="flex flex-col items-end mr-1">
-                <span className="text-[11px] font-bold text-gray-900 leading-none">{profile?.displayName?.split(' ')[0]}</span>
+              <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                <span className="text-[11px] font-bold text-gray-900 leading-none">{profile?.displayName?.split(' ')[0] || profile?.email?.split('@')[0]}</span>
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{profile?.role}</span>
               </div>
               <div className="w-8 h-8 rounded-lg text-white flex items-center justify-center font-black text-xs shadow-sm group-hover:scale-105 transition-transform" style={{ backgroundColor: 'var(--admin-primary)' }}>
-                {profile?.displayName?.charAt(0) || 'A'}
+                {profile?.displayName?.charAt(0) || profile?.email?.charAt(0).toUpperCase() || 'A'}
               </div>
             </button>
           </div>

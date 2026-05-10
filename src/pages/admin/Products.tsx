@@ -12,11 +12,9 @@ import {
   Edit2,
   Trash2,
   ChevronRight,
-  Package
+  Package,
+  Star
 } from 'lucide-react';
-import { db } from '../../lib/firebase';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, where } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
 import { useStore } from '../../hooks/useStore';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -120,6 +118,8 @@ const MediaUpload = ({ images, setImages }: { images: string[], setImages: (imgs
   );
 };
 
+import { productService } from '../../services/productService';
+
 export const AdminProducts = () => {
   const { currentStore } = useStore();
   const [products, setProducts] = useState<any[]>([]);
@@ -130,75 +130,103 @@ export const AdminProducts = () => {
     title: '',
     description: '',
     price: 0,
+    originalPrice: 0,
     category: 'Furniture',
     stock: 0,
+    isFeatured: false,
     images: [] as string[]
   });
 
-  useEffect(() => {
-    if (!currentStore?.id) return;
-    const path = 'products';
-    const q = query(
-      collection(db, path), 
-      where("storeId", "==", currentStore.id),
-      orderBy('createdAt', 'desc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const prods = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setProducts(prods);
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const data = await productService.getAllProducts(true);
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching products from Supabase:', error);
+      toast.error('Failed to load products');
+    } finally {
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
-    });
-    return () => unsubscribe();
-  }, [currentStore?.id]);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentStore?.id) return;
-    const path = 'products';
     try {
-      await addDoc(collection(db, path), {
+      const price = parseFloat(String(newProduct.price)) || 0;
+      const originalPriceValue = parseFloat(String(newProduct.originalPrice)) || 0;
+      const stock = parseInt(String(newProduct.stock)) || 0;
+
+      await productService.createProduct({
         ...newProduct,
-        storeId: currentStore.id,
+        price,
+        originalPrice: originalPriceValue > 0 ? originalPriceValue : undefined,
+        stock,
+        categoryName: newProduct.category,
+        isPublished: true,
         rating: 5,
         reviewsCount: 0,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      } as any);
+      
       setIsAddDialogOpen(false);
       toast.success('Product added successfully');
       setNewProduct({
         title: '',
         description: '',
         price: 0,
+        originalPrice: 0,
         category: 'Furniture',
         stock: 0,
+        isFeatured: false,
         images: []
       });
+      fetchProducts(); // Refresh list
+    } catch (error: any) {
+      console.error('Error adding product to Supabase:', error);
+      toast.error(`Failed to add product: ${error.message || 'Check connection or RLS policies'}`);
+    }
+  };
+
+  const toggleFeatured = async (product: any) => {
+    try {
+      await productService.updateProduct(product.id, { isFeatured: !product.isFeatured });
+      toast.success(product.isFeatured ? 'Removed from featured' : 'Marked as featured');
+      fetchProducts();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      toast.error('Failed to update product');
+    }
+  };
+
+  const togglePublished = async (product: any) => {
+    try {
+      await productService.updateProduct(product.id, { isPublished: !product.isPublished });
+      toast.success(product.isPublished ? 'Product unpublished' : 'Product published');
+      fetchProducts();
+    } catch (error) {
+      toast.error('Failed to update product');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      const path = `products/${id}`;
       try {
-        await deleteDoc(doc(db, 'products', id));
+        await productService.deleteProduct(id);
         toast.success('Product deleted');
+        setProducts(products.filter(p => p.id !== id));
       } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, path);
+        console.error('Error deleting product from Supabase:', error);
+        toast.error('Failed to delete product');
       }
     }
   };
 
   const filteredProducts = products.filter(p => 
     p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+    (p.categoryName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -241,10 +269,22 @@ export const AdminProducts = () => {
                     <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Price ($)</Label>
                     <Input 
                       type="number" 
+                      step="0.01"
                       required 
                       value={newProduct.price}
                       onChange={(e) => setNewProduct({...newProduct, price: parseFloat(e.target.value)})}
                       className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Original Price ($ - Optional)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      value={newProduct.originalPrice}
+                      onChange={(e) => setNewProduct({...newProduct, originalPrice: parseFloat(e.target.value)})}
+                      className="rounded-xl h-11"
+                      placeholder="Was e.g. 199.99"
                     />
                   </div>
                   <div className="space-y-2">
@@ -256,16 +296,28 @@ export const AdminProducts = () => {
                       className="rounded-xl h-11"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Inventory Stock</Label>
+                    <Input 
+                      type="number" 
+                      required 
+                      value={newProduct.stock}
+                      onChange={(e) => setNewProduct({...newProduct, stock: parseInt(e.target.value)})}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Inventory Stock</Label>
-                  <Input 
-                    type="number" 
-                    required 
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct({...newProduct, stock: parseInt(e.target.value)})}
-                    className="rounded-xl h-11"
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="isFeatured" 
+                    checked={newProduct.isFeatured}
+                    onChange={(e) => setNewProduct({...newProduct, isFeatured: e.target.checked})}
+                    className="w-4 h-4 rounded border-gray-300"
                   />
+                  <Label htmlFor="isFeatured" className="text-xs font-bold uppercase tracking-widest text-gray-500 cursor-pointer">
+                    Display in Featured Collection
+                  </Label>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-gray-500">Description</Label>
@@ -351,14 +403,19 @@ export const AdminProducts = () => {
                     <p className="text-[10px] text-gray-400 font-mono">ID: {product.id.slice(0, 8)}</p>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      product.stock > 10 ? "bg-green-50 text-green-700 border-green-100" :
-                      product.stock > 0 ? "bg-orange-50 text-orange-700 border-orange-100" :
-                      "bg-red-50 text-red-700 border-red-100"
-                    )}>
-                      {product.stock > 10 ? 'Active' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-                    </Badge>
+                    <div className="flex flex-col gap-2">
+                      <Badge variant="outline" className={cn(
+                        "text-[10px] font-bold uppercase tracking-widest cursor-pointer",
+                        product.isPublished ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-400 border-gray-100"
+                      )} onClick={() => togglePublished(product)}>
+                        {product.isPublished ? 'Published' : 'Draft'}
+                      </Badge>
+                      {product.isFeatured && (
+                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-700 border-amber-100">
+                          Featured
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
@@ -368,15 +425,6 @@ export const AdminProducts = () => {
                           {product.stock} available
                         </span>
                       </div>
-                      <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            product.stock > 10 ? "bg-green-500" : product.stock > 0 ? "bg-orange-500" : "bg-red-500"
-                          )} 
-                          style={{ width: `${Math.min(100, (product.stock / 20) * 100)}%` }} 
-                        />
-                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-bold">
@@ -385,7 +433,7 @@ export const AdminProducts = () => {
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-gray-500">
                       <Tag size={12} />
-                      <span className="text-xs font-medium uppercase tracking-widest">{product.category}</span>
+                      <span className="text-xs font-medium uppercase tracking-widest">{product.categoryName || 'General'}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -397,8 +445,9 @@ export const AdminProducts = () => {
                         <DropdownMenuItem onClick={() => window.open(`/product/${product.id}`, '_blank')}>
                           <Eye className="mr-2 h-4 w-4" /> View Store
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit2 className="mr-2 h-4 w-4" /> Edit details
+                        <DropdownMenuItem onClick={() => toggleFeatured(product)}>
+                          <Star className={cn("mr-2 h-4 w-4", product.isFeatured && "fill-amber-400 text-amber-400")} /> 
+                          {product.isFeatured ? 'Unfeature' : 'Feature'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => handleDelete(product.id)}>

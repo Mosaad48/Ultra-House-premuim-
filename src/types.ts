@@ -1,68 +1,50 @@
-export interface UserProfile {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  role: 'user' | 'admin';
-  ownedStoreIds?: string[];
-  currentStoreId?: string;
-  createdAt: any;
+export interface StoreSettings {
+  id: string;
+  storeName: string;
+  logoUrl?: string;
+  primaryColor: string;
+  accentColor: string;
+  fontFamily: string;
+  currency: string;
+  updatedAt: string;
 }
 
-export interface Store {
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonLink: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
+export interface Category {
   id: string;
   name: string;
   slug: string;
-  ownerId: string;
-  onboardingStatus: 'onboarding' | 'active';
-  launchStatus: 'draft' | 'live' | 'maintenance';
-  theme: {
-    primaryColor: string;
-    secondaryColor: string;
-    logo?: string;
-    banner?: string;
-    typography?: string;
-    darkMode: boolean;
-  };
-  settings: {
-    currency: string;
-    timezone: string;
-    email: string;
-    tagline?: string;
-    domain?: string;
-  };
-  navigation: {
-    header: any[];
-    footer: any[];
-  };
-  launchChecklist: {
-    domainConnected: boolean;
-    seoReady: boolean;
-    paymentSetup: boolean;
-    shippingSetup: boolean;
-  };
-  adminAppearance?: {
-    primaryColor: string;
-    sidebarMode: 'dark' | 'light';
-    typography: string;
-  };
-  createdAt: any;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface Product {
   id: string;
-  storeId: string;
   title: string;
+  slug: string;
   description: string;
   price: number;
   originalPrice?: number;
-  category: string;
+  categoryId?: string;
+  categoryName?: string;
   images: string[];
   stock: number;
+  isPublished: boolean;
+  isFeatured: boolean;
   rating: number;
   reviewsCount: number;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartItem extends Product {
@@ -71,17 +53,11 @@ export interface CartItem extends Product {
 
 export interface Order {
   id: string;
-  storeId: string;
-  userId: string;
-  items: {
-    productId: string;
-    title: string;
-    price: number;
-    quantity: number;
-  }[];
-  total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  address: string;
+  customerName: string;
   customerEmail: string;
-  createdAt: any;
+  totalAmount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  shippingAddress: any;
+  items: any[];
+  createdAt: string;
 }

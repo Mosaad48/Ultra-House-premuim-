@@ -112,8 +112,8 @@ export const AdminAnalytics = () => {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <CardContent className="h-[400px] min-h-[400px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={REVENUE_DATA} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis 
@@ -147,8 +147,8 @@ export const AdminAnalytics = () => {
             <CardDescription>Performance breakdown across product types.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px] relative">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[250px] min-h-[250px] relative">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
                     data={CATEGORY_DATA}
@@ -194,8 +194,8 @@ export const AdminAnalytics = () => {
             <CardTitle>Peak Shopping Times</CardTitle>
             <CardDescription>Identify when your customers are most active.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <CardContent className="h-[200px] min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <LineChart data={[
                 { time: '6am', v: 10 },
                 { time: '10am', v: 45 },

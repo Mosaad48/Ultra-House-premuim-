@@ -20,11 +20,13 @@ import { useCart } from '../../hooks/useCart';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../../lib/firestore-errors';
 import { formatPrice, cn } from '../../lib/utils';
 import { Product } from '../../types';
 import { toast } from 'sonner';
+
+import { productService } from '../../services/productService';
 
 export const ProductDetail = () => {
   const { id } = useParams();
@@ -52,22 +54,22 @@ export const ProductDetail = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const docRef = doc(db, 'products', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+        const data = await productService.getProduct(id);
+        if (data) {
+          setProduct(data);
         } else {
           toast.error('Product not found');
           navigate('/');
         }
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, `products/${id}`);
+        console.error('Error fetching product from Supabase:', error);
+        toast.error('Failed to load product');
       } finally {
         setLoading(false);
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [id, navigate]);
 
   // Real-time reviews listener
   useEffect(() => {

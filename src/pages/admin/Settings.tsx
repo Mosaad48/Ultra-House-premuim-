@@ -68,19 +68,39 @@ type SettingsTab =
   | 'appearance';
 
 export const AdminSettings = () => {
-  const { currentStore, updateStore } = useStore();
+  const { currentStore, updateSettings } = useStore();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [isSaving, setIsSaving] = useState(false);
 
-  const [appearanceDraft, setAppearanceDraft] = useState(currentStore?.adminAppearance || {
-    primaryColor: '#000000',
-    sidebarMode: 'dark',
-    typography: 'Inter'
+  const [generalDraft, setGeneralDraft] = useState({
+    storeName: currentStore?.storeName || '',
+    currency: currentStore?.currency || 'USD',
   });
+
+  const [appearanceDraft, setAppearanceDraft] = useState({
+    primaryColor: currentStore?.primaryColor || '#000000',
+    accentColor: currentStore?.accentColor || '#fbbf24',
+    fontFamily: currentStore?.fontFamily || 'Inter'
+  });
+
+  // Sync drafts when currentStore loads
+  React.useEffect(() => {
+    if (currentStore) {
+      setGeneralDraft({
+        storeName: currentStore.storeName,
+        currency: currentStore.currency,
+      });
+      setAppearanceDraft({
+        primaryColor: currentStore.primaryColor,
+        accentColor: currentStore.accentColor,
+        fontFamily: currentStore.fontFamily
+      });
+    }
+  }, [currentStore]);
 
   const tabs: { id: SettingsTab, label: string, icon: any }[] = [
     { id: 'general', label: 'General', icon: Store },
-    { id: 'appearance', label: 'Admin Appearance', icon: Palette },
+    { id: 'appearance', label: 'Store Appearance', icon: Palette },
     { id: 'plan', label: 'Plan', icon: Layout },
     { id: 'billing', label: 'Billing', icon: Billing },
     { id: 'users', label: 'Users and Permissions', icon: UserCheck },
@@ -100,14 +120,17 @@ export const AdminSettings = () => {
     { id: 'policies', label: 'Policies', icon: FileText }
   ];
 
-  const handleSaveAppearance = async () => {
-    if (!currentStore?.id) return;
+  const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateStore(currentStore.id, { adminAppearance: appearanceDraft });
-      toast.success('Admin dashboard appearance updated');
+      if (activeTab === 'general') {
+        await updateSettings(generalDraft);
+      } else if (activeTab === 'appearance') {
+        await updateSettings(appearanceDraft);
+      }
+      toast.success('Settings updated successfully');
     } catch (error) {
-      toast.error('Failed to update appearance');
+      toast.error('Failed to update settings');
     } finally {
       setIsSaving(false);
     }
@@ -160,19 +183,16 @@ export const AdminSettings = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="store-name">Store Name</Label>
-                        <Input id="store-name" defaultValue={currentStore?.name} />
+                        <Input 
+                          id="store-name" 
+                          value={generalDraft.storeName} 
+                          onChange={(e) => setGeneralDraft({...generalDraft, storeName: e.target.value})}
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="store-email">Contact Email</Label>
-                        <Input id="store-email" defaultValue={currentStore?.settings.email} />
+                      <div className="space-y-2 opacity-50 cursor-not-allowed">
+                        <Label htmlFor="store-email">Contact Email (Linked to Account)</Label>
+                        <Input id="store-email" value="admin@lumiere.com" readOnly />
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                       <Label htmlFor="store-slug">Store Handle (Slug)</Label>
-                       <div className="flex">
-                         <span className="bg-gray-50 px-3 flex items-center border border-r-0 rounded-l-lg text-xs font-bold text-gray-400 uppercase">.shop/</span>
-                         <Input id="store-slug" defaultValue={currentStore?.slug} className="rounded-l-none" />
-                       </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -180,22 +200,20 @@ export const AdminSettings = () => {
                 <Card className="border-none shadow-sm shadow-black/5 ring-1 ring-black/[0.05]">
                   <CardHeader>
                     <CardTitle>Regional Settings</CardTitle>
-                    <CardDescription>Manage currency, timezone and formats.</CardDescription>
+                    <CardDescription>Manage currency and markets.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Currency</Label>
-                        <select className="w-full h-10 px-3 bg-white border rounded-lg text-sm outline-none">
+                        <select 
+                          className="w-full h-10 px-3 bg-white border rounded-lg text-sm outline-none"
+                          value={generalDraft.currency}
+                          onChange={(e) => setGeneralDraft({...generalDraft, currency: e.target.value})}
+                        >
                           <option value="USD">USD - US Dollar</option>
                           <option value="EUR">EUR - Euro</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Timezone</Label>
-                        <select className="w-full h-10 px-3 bg-white border rounded-lg text-sm outline-none">
-                          <option value="UTC">UTC (GMT+0:00)</option>
-                          <option value="EST">EST (GMT-5:00)</option>
+                          <option value="GBP">GBP - British Pound</option>
                         </select>
                       </div>
                     </div>
@@ -208,68 +226,61 @@ export const AdminSettings = () => {
               <div className="space-y-6">
                 <Card className="border-none shadow-sm shadow-black/5 ring-1 ring-black/[0.05]">
                   <CardHeader>
-                    <CardTitle>Dashboard Theme</CardTitle>
-                    <CardDescription>Customize the visual style of your merchant dashboard.</CardDescription>
+                    <CardTitle>Storefront Theme</CardTitle>
+                    <CardDescription>Customize the visual style of your customer-facing store.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold text-gray-500">Primary Brand Color</Label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="color" 
-                          value={appearanceDraft.primaryColor} 
-                          onChange={(e) => setAppearanceDraft({...appearanceDraft, primaryColor: e.target.value})}
-                          className="w-10 h-10 rounded border cursor-pointer"
-                        />
-                        <Input 
-                          value={appearanceDraft.primaryColor} 
-                          onChange={(e) => setAppearanceDraft({...appearanceDraft, primaryColor: e.target.value})}
-                          className="flex-1 h-10 font-mono text-xs uppercase" 
-                        />
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-gray-500">Primary Color</Label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="color" 
+                            value={appearanceDraft.primaryColor} 
+                            onChange={(e) => setAppearanceDraft({...appearanceDraft, primaryColor: e.target.value})}
+                            className="w-10 h-10 rounded border cursor-pointer"
+                          />
+                          <Input 
+                            value={appearanceDraft.primaryColor} 
+                            onChange={(e) => setAppearanceDraft({...appearanceDraft, primaryColor: e.target.value})}
+                            className="flex-1 h-10 font-mono text-xs uppercase" 
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-gray-500">Accent Color</Label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="color" 
+                            value={appearanceDraft.accentColor} 
+                            onChange={(e) => setAppearanceDraft({...appearanceDraft, accentColor: e.target.value})}
+                            className="w-10 h-10 rounded border cursor-pointer"
+                          />
+                          <Input 
+                            value={appearanceDraft.accentColor} 
+                            onChange={(e) => setAppearanceDraft({...appearanceDraft, accentColor: e.target.value})}
+                            className="flex-1 h-10 font-mono text-xs uppercase" 
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold text-gray-500">Sidebar Theme</Label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <button 
-                          onClick={() => setAppearanceDraft({...appearanceDraft, sidebarMode: 'dark'})}
-                          className={cn(
-                            "flex flex-col items-center gap-3 p-4 rounded-xl border transition-all",
-                            appearanceDraft.sidebarMode === 'dark' ? "border-black ring-1 ring-black bg-gray-50" : "border-gray-200 hover:border-black/20"
-                          )}
-                        >
-                          <div className="w-full h-12 bg-[#1a1a1a] rounded shadow-inner" />
-                          <span className="text-xs font-bold">Midnight Dark</span>
-                        </button>
-                        <button 
-                          onClick={() => setAppearanceDraft({...appearanceDraft, sidebarMode: 'light'})}
-                          className={cn(
-                            "flex flex-col items-center gap-3 p-4 rounded-xl border transition-all",
-                            appearanceDraft.sidebarMode === 'light' ? "border-black ring-1 ring-black bg-gray-50" : "border-gray-200 hover:border-black/20"
-                          )}
-                        >
-                          <div className="w-full h-12 bg-white border rounded shadow-inner" />
-                          <span className="text-xs font-bold">Arctic Light</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold text-gray-500">Dashboard Font</Label>
+                      <Label className="text-[10px] uppercase font-bold text-gray-500">Storefront Typography</Label>
                       <select 
                         className="w-full h-10 px-3 bg-white border rounded-lg text-sm outline-none"
-                        value={appearanceDraft.typography}
-                        onChange={(e) => setAppearanceDraft({...appearanceDraft, typography: e.target.value})}
+                        value={appearanceDraft.fontFamily}
+                        onChange={(e) => setAppearanceDraft({...appearanceDraft, fontFamily: e.target.value})}
                       >
                         <option value="Inter">Inter (Sans-serif)</option>
                         <option value="Space Grotesk">Space Grotesk (Modern)</option>
                         <option value="JetBrains Mono">JetBrains Mono (Technical)</option>
+                        <option value="Outfit">Outfit (Clean)</option>
                       </select>
                     </div>
 
-                    <Button className="w-full" onClick={handleSaveAppearance} disabled={isSaving}>
-                      {isSaving ? 'Updating...' : 'Apply Appearance Changes'}
+                    <Button className="w-full bg-black text-white" onClick={handleSave} disabled={isSaving}>
+                      {isSaving ? 'Updating...' : 'Save Appearance'}
                     </Button>
                   </CardContent>
                 </Card>

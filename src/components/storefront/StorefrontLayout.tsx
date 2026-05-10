@@ -8,7 +8,7 @@ import { cn, formatPrice } from '../../lib/utils';
 import { Button } from '../ui/button';
 
 export const StorefrontLayout = () => {
-  const { currentStore, fetchStoreBySlug, loading, error } = useStore();
+  const { currentStore, fetchSettings, loading, error } = useStore();
   const { cartCount, items } = useCart();
   const { isRtl, t } = useLanguage();
   const location = useLocation();
@@ -24,10 +24,9 @@ export const StorefrontLayout = () => {
 
   React.useEffect(() => {
     if (isHydrated && !currentStore && !loading && !error) {
-      // Fetch default store if none exists in state
-      fetchStoreBySlug('default');
+      fetchSettings();
     }
-  }, [currentStore, loading, fetchStoreBySlug, isHydrated, error]);
+  }, [currentStore, loading, fetchSettings, isHydrated, error]);
 
   if ((loading || !isHydrated) && !currentStore) {
     return (
@@ -104,8 +103,8 @@ export const StorefrontLayout = () => {
     );
   }
 
-  const brandColor = currentStore?.theme?.primaryColor || '#000000';
-  const brandName = currentStore?.name || 'LUMIÈRE';
+  const brandColor = currentStore?.primaryColor || '#000000';
+  const brandName = currentStore?.storeName || 'LUMIÈRE';
 
   // Total cart value
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -115,7 +114,7 @@ export const StorefrontLayout = () => {
       "min-h-screen bg-white font-sans antialiased",
       isRtl ? "rtl" : "ltr"
     )} style={{ 
-      fontFamily: currentStore?.theme?.typography || 'Inter, sans-serif'
+      fontFamily: currentStore?.fontFamily || 'Inter, sans-serif'
     }}>
       {/* Announcement Bar */}
       <div 

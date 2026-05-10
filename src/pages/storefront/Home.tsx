@@ -1,43 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Star } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Star, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useCart } from '../../hooks/useCart';
 import { useStore } from '../../hooks/useStore';
 import { formatPrice, cn } from '../../lib/utils';
-
-// Sample data for Home
-const FEATURED_PRODUCTS = [
-  {
-    id: '1',
-    title: 'Nordic Minimalist Sofa',
-    price: 999,
-    images: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800'],
-    category: 'Sofa',
-    stock: 5,
-    rating: 4.8,
-    reviewsCount: 124
-  },
-  {
-    id: '2',
-    title: 'Modern Pendant Light',
-    price: 249,
-    images: ['https://images.unsplash.com/photo-1540932239986-30128078f3c5?auto=format&fit=crop&q=80&w=800'],
-    category: 'Lighting',
-    stock: 12,
-    rating: 4.5,
-    reviewsCount: 86
-  }
-];
+import { productService } from '../../services/productService';
+import { storeService } from '../../services/storeService';
+import { Product, Banner } from '../../types';
 
 export const Home = () => {
   const { t, isRtl } = useLanguage();
   const { addItem } = useCart();
   const { currentStore } = useStore();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const brandColor = currentStore?.theme?.primaryColor || '#000000';
-  const brandName = currentStore?.name?.toUpperCase() || 'LUMIÈRE';
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [prods, bans] = await Promise.all([
+          productService.getFeaturedProducts(),
+          storeService.getBanners()
+        ]);
+        setProducts(prods);
+        setBanners(bans);
+      } catch (error) {
+        console.error('Failed to fetch storefront data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const brandColor = currentStore?.primaryColor || '#000000';
+  const activeHero = banners[0];
 
   return (
     <div>
@@ -45,7 +47,7 @@ export const Home = () => {
       <section className="relative h-screen min-h-[700px] flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=2000" 
+            src={activeHero?.imageUrl || "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=2000"} 
             alt="Hero" 
             className="w-full h-full object-cover"
           />
@@ -58,20 +60,21 @@ export const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-2xl text-white"
           >
-            <h1 className="text-6xl md:text-8xl font-display font-black leading-[0.9] mb-8" style={{ fontFamily: currentStore?.theme?.typography || 'inherit' }}>
-              {currentStore?.settings.tagline || t('hero.title')}
+            <h1 className="text-6xl md:text-8xl font-display font-black leading-[0.9] mb-8" style={{ fontFamily: currentStore?.fontFamily || 'inherit' }}>
+              {activeHero?.title || currentStore?.storeName || t('hero.title')}
             </h1>
             <p className="text-lg md:text-xl text-white/90 mb-12 max-w-lg leading-relaxed font-medium">
-              {t('hero.desc')}
+              {activeHero?.subtitle || t('hero.desc')}
             </p>
             <div className="flex flex-col sm:flex-row gap-6">
-              <button 
+              <Link
+                to={activeHero?.buttonLink || '/products'}
                 className="bg-white text-black px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all duration-300 group shadow-2xl"
                 style={{ color: brandColor }}
               >
-                {t('hero.shop')} 
+                {activeHero?.buttonText || t('hero.shop')} 
                 <ArrowRight size={20} className={cn("group-hover:translate-x-1 transition-transform", isRtl && "rotate-180")} />
-              </button>
+              </Link>
               <button className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-10 py-5 rounded-2xl font-bold hover:bg-white/20 transition-all">
                 {t('hero.story')}
               </button>
@@ -106,38 +109,50 @@ export const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16">
-          {FEATURED_PRODUCTS.map((product: any) => (
-            <div key={product.id} className="group cursor-pointer">
-              <Link to={`/product/${product.id}`} className="block">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-gray-100 mb-6">
-                  <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      addItem(product);
-                    }}
-                    className="absolute bottom-6 left-6 right-6 bg-white py-4 rounded-xl font-bold text-sm shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-black hover:text-white"
-                  >
-                    {t('product.add')}
-                  </button>
-                </div>
-              </Link>
-              <div className="flex justify-between items-start">
-                <Link to={`/product/${product.id}`} className="block flex-1 min-w-0">
-                  <div>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">{product.category}</p>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">{product.title}</h3>
-                    <div className="flex items-center gap-1 text-orange-400 text-xs">
-                      <Star size={14} fill="currentColor" />
-                      <span className="text-gray-500 font-bold">{product.rating} ({product.reviewsCount})</span>
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16 min-h-[400px] relative">
+          {loading ? (
+            <div className="col-span-full h-64 flex flex-col items-center justify-center gap-4 text-gray-400">
+              <Loader2 size={40} className="animate-spin" />
+              <p className="font-bold uppercase tracking-[0.2em] text-xs">Loading collection</p>
+            </div>
+          ) : products.length > 0 ? (
+            products.map((product: Product) => (
+              <div key={product.id} className="group cursor-pointer">
+                <Link to={`/product/${product.id}`} className="block">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-gray-100 mb-6">
+                    <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        addItem(product);
+                      }}
+                      className="absolute bottom-6 left-6 right-6 bg-white py-4 rounded-xl font-bold text-sm shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all hover:bg-black hover:text-white"
+                    >
+                      {t('product.add')}
+                    </button>
                   </div>
                 </Link>
-                <p className="text-2xl font-display font-black">{formatPrice(product.price)}</p>
+                <div className="flex justify-between items-start">
+                  <Link to={`/product/${product.id}`} className="block flex-1 min-w-0">
+                    <div>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">{product.categoryName || 'General'}</p>
+                      <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">{product.title}</h3>
+                      <div className="flex items-center gap-1 text-orange-400 text-xs">
+                        <Star size={14} fill="currentColor" />
+                        <span className="text-gray-500 font-bold">{product.rating} ({product.reviewsCount})</span>
+                      </div>
+                    </div>
+                  </Link>
+                  <p className="text-2xl font-display font-black">{formatPrice(product.price)}</p>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full h-64 flex flex-col items-center justify-center gap-4 text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl">
+              <p className="font-bold uppercase tracking-[0.2em] text-xs">No products found</p>
+              <p className="text-sm">Start adding products in the admin dashboard</p>
             </div>
-          ))}
+          )}
         </div>
       </section>
 

@@ -37,23 +37,20 @@ const ControlGroup = ({ label, children }: { label: string, children: React.Reac
 );
 
 export const StoreCustomizer = () => {
-  const { currentStore, updateStore } = useStore();
+  const { currentStore, updateSettings } = useStore();
   const [device, setDevice] = useState<DeviceMode>('desktop');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'sections' | 'theme'>('sections');
 
-  const [themeDraft, setThemeDraft] = useState(currentStore?.theme || {
-    primaryColor: '#000000',
-    secondaryColor: '#ffffff',
-    typography: 'Inter',
-    darkMode: false
+  const [themeDraft, setThemeDraft] = useState({
+    primaryColor: currentStore?.primaryColor || '#000000',
+    fontFamily: currentStore?.fontFamily || 'Inter',
   });
 
   const handleSave = async () => {
-    if (!currentStore?.id) return;
     setIsSaving(true);
     try {
-      await updateStore(currentStore.id, { theme: themeDraft });
+      await updateSettings(themeDraft);
       toast.success('Visual changes saved successfully');
     } catch (error) {
       toast.error('Failed to save changes');
@@ -201,8 +198,8 @@ export const StoreCustomizer = () => {
                     <Label className="text-[10px] uppercase font-bold text-gray-500">Main Font</Label>
                     <select 
                       className="w-full h-10 px-3 bg-white border rounded-lg text-sm outline-none"
-                      value={themeDraft.typography}
-                      onChange={(e) => setThemeDraft({...themeDraft, typography: e.target.value})}
+                      value={themeDraft.fontFamily}
+                      onChange={(e) => setThemeDraft({...themeDraft, fontFamily: e.target.value})}
                     >
                       <option value="Inter">Inter (Modern)</option>
                       <option value="Space Grotesk">Space Grotesk (Tech)</option>
@@ -238,7 +235,7 @@ export const StoreCustomizer = () => {
               {/* Preview Header */}
               <div className="h-16 border-b flex items-center justify-between px-8 bg-white sticky top-0 z-30">
                 <div className="font-bold text-lg" style={{ color: themeDraft.primaryColor }}>
-                  {currentStore?.name || 'STORE NAME'}
+                  {currentStore?.storeName || 'STORE NAME'}
                 </div>
                 <div className="flex gap-6 text-sm font-medium text-gray-600">
                   <span>Home</span>
@@ -249,7 +246,7 @@ export const StoreCustomizer = () => {
 
               {/* Preview Hero */}
               <div className="p-12 text-center" style={{ backgroundColor: `${themeDraft.primaryColor}10` }}>
-                <h2 className="text-4xl font-black mb-4 uppercase tracking-tight" style={{ fontFamily: themeDraft.typography }}>
+                <h2 className="text-4xl font-black mb-4 uppercase tracking-tight" style={{ fontFamily: themeDraft.fontFamily }}>
                   New Summer Collection
                 </h2>
                 <p className="text-gray-600 mb-8 max-w-lg mx-auto">Discover the latest trends in minimalist design. Carefully crafted for you.</p>

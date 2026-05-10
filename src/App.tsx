@@ -1,70 +1,88 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
+// Admin Pages
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminProducts } from './pages/admin/Products';
 import { AdminOrders } from './pages/admin/Orders';
 import { AdminAnalytics } from './pages/admin/Analytics';
 import { AdminSettings } from './pages/admin/Settings';
 import { StoreCustomizer } from './pages/admin/StoreCustomizer';
+
+// Storefront Pages
 import { Home } from './pages/storefront/Home';
 import { ProductDetail } from './pages/storefront/ProductDetail';
 import { Checkout } from './pages/storefront/Checkout';
 import { OrderSuccess } from './pages/storefront/OrderSuccess';
 import { Login } from './pages/Login';
-import { CartProvider } from './hooks/useCart';
-import { LanguageProvider, useLanguage } from './hooks/useLanguage';
-import { useAuth } from './hooks/useAuth';
+import { NotFound } from './pages/NotFound';
 
+// Providers & Hooks
+import { CartProvider } from './hooks/useCart';
+import { LanguageProvider } from './hooks/useLanguage';
+import { useAuth } from './hooks/useAuth';
 import { StorefrontLayout } from './components/storefront/StorefrontLayout';
 
 const AppContent = () => {
-  const { loading, user } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   return (
     <Router>
       <Routes>
-        {/* Merchant Auth Routes */}
-        <Route path="/login" element={user ? <Navigate to="/admin" /> : <Login />} />
-        <Route path="/signup" element={user ? <Navigate to="/admin" /> : <Login />} />
-        <Route path="/forgot-password" element={<Login />} />
+        {/* Auth Routes */}
+        <Route path="/login" element={user ? <Navigate to="/admin" replace /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/admin" replace /> : <Login />} />
 
-        {/* Admin Dashboard Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* 
+          ADMIN DASHBOARD ROUTES 
+          Wrapped in ProtectedRoute and AdminLayout
+        */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
-          <Route path="store-customizer" element={<StoreCustomizer />} />
-          <Route path="orders" element={<AdminOrders />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="inventory" element={<AdminProducts />} />
+          <Route path="orders" element={<AdminOrders />} />
           <Route path="customers" element={<AdminDashboard />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="marketing" element={<AdminDashboard />} />
           <Route path="discounts" element={<AdminDashboard />} />
-          <Route path="inventory" element={<AdminProducts />} />
-          <Route path="ai" element={<AdminDashboard />} />
+          <Route path="content" element={<AdminDashboard />} />
+          <Route path="store-customizer" element={<StoreCustomizer />} />
           <Route path="settings" element={<AdminSettings />} />
+          
+          {/* Missing admin routes from sidebar placeholders */}
+          <Route path="pos" element={<AdminDashboard />} />
+          <Route path="markets" element={<AdminDashboard />} />
+          <Route path="apps" element={<AdminDashboard />} />
+          <Route path="translations" element={<AdminDashboard />} />
         </Route>
 
-        {/* Storefront Routes (Customer Facing) */}
+        {/* 
+          STOREFRONT ROUTES 
+          Independently wrapped in StorefrontLayout
+        */}
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />
-          <Route path="product/:id" element={<ProductDetail />} />
+          <Route path="products" element={<Home />} /> {/* Listing page */}
           <Route path="collections" element={<Home />} />
+          <Route path="product/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Checkout />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="order-success" element={<OrderSuccess />} />
           <Route path="account" element={<Navigate to="/login" />} />
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Global Fallback */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );
