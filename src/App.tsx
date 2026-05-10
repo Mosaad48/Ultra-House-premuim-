@@ -17,6 +17,7 @@ import { ProductDetail } from './pages/storefront/ProductDetail';
 import { Checkout } from './pages/storefront/Checkout';
 import { OrderSuccess } from './pages/storefront/OrderSuccess';
 import { Login } from './pages/Login';
+import { AuthCallback } from './pages/AuthCallback';
 import { NotFound } from './pages/NotFound';
 
 // Providers & Hooks
@@ -34,6 +35,7 @@ const AppContent = () => {
         {/* Auth Routes */}
         <Route path="/login" element={user ? <Navigate to="/admin" replace /> : <Login />} />
         <Route path="/signup" element={user ? <Navigate to="/admin" replace /> : <Login />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* 
           ADMIN DASHBOARD ROUTES 

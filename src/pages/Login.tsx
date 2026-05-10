@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider,
-  GithubAuthProvider,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -40,28 +32,21 @@ export const Login = () => {
   const handleSocialLogin = async (providerName: 'google' | 'github') => {
     try {
       setLoading(true);
-      const provider = providerName === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: providerName,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
       
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, 'users', result.user.uid), {
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          role: 'merchant',
-          createdAt: new Date().toISOString()
-        });
-        toast.success('Account created successfully');
-        navigate('/admin/onboarding');
-      } else {
-        toast.success('Welcome back!');
-        navigate('/admin/dashboard');
-      }
+      if (error) throw error;
+      // Social login uses redirects, so we don't navigate manually here
     } catch (err: any) {
-      toast.error(err.message);
-    } finally {
+      if (err.message?.includes('provider is not enabled')) {
+        toast.error('هذا المزود غير مفعّل في إعدادات Supabase. يرجى تفعيله من لوحة التحكم.');
+      } else {
+        toast.error(err.message);
+      }
       setLoading(false);
     }
   };
@@ -71,20 +56,23 @@ export const Login = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast.success('Logged in successfully');
-        navigate('/admin/dashboard');
-      } else {
-        const result = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, 'users', result.user.uid), {
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: email.split('@')[0],
-          role: 'merchant',
-          createdAt: new Date().toISOString()
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
-        toast.success('Account created successfully');
-        navigate('/admin/onboarding');
+        if (error) throw error;
+        toast.success('Logged in successfully');
+        navigate('/admin');
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          }
+        });
+        if (error) throw error;
+        toast.success('Account created! Please check your email for confirmation.');
       }
     } catch (err: any) {
       toast.error(err.message);
